@@ -12,7 +12,7 @@
 --         NULL同士を重複と見なさないため、意図した重複だけを防げるようになる。
 --
 -- 適用方法：MySQLクライアント（コマンドプロンプトやMySQL Workbenchなど）で
---   USE za_navi_db;
+--   USE zaseki1;
 --   SOURCE migration_2026-06-08_fix_reservations_unique.sql;
 -- のように実行する。
 -- =========================================================

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>座・Navi セットアップ手順</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body {
+    font-family: "Yu Gothic", "Meiryo", sans-serif;
+    color: #263238;
+    line-height: 1.7;
+    font-size: 13px;
+  }
+  h1 {
+    font-size: 20px;
+    border-bottom: 3px solid #00695C;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 16px;
+    background: #E0F2F1;
+    color: #00695C;
+    padding: 6px 10px;
+    border-left: 6px solid #00897B;
+    margin-top: 28px;
+  }
+  h3 { font-size: 14px; color: #00695C; margin-top: 16px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 6px 0; padding-left: 26px; }
+  li { margin: 3px 0; }
+  code {
+    background: #ECEFF1;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+  }
+  pre {
+    background: #263238;
+    color: #ECEFF1;
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 11.5px;
+    line-height: 1.5;
+    page-break-inside: avoid;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 12px;
+  }
+  th, td {
+    border: 1px solid #B0BEC5;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #CFD8DC; }
+  .note {
+    background: #FFF8E1;
+    border-left: 6px solid #FFB300;
+    padding: 8px 12px;
+    margin: 10px 0;
+    font-size: 12px;
+  }
+  .step-box {
+    border: 1px solid #CFD8DC;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 10px 0 18px;
+    page-break-inside: avoid;
+  }
+  .step-num {
+    display: inline-block;
+    background: #00897B;
+    color: #fff;
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    text-align: center;
+    line-height: 24px;
+    font-weight: 700;
+    margin-right: 8px;
+    font-size: 13px;
+  }
+  .key { color: #C62828; font-weight: 700; }
+  hr { border: none; border-top: 1px solid #CFD8DC; margin: 22px 0; }
+</style>
+</head>
+<body>
+
+<h1>座・Navi セットアップ手順<br><span style="font-size:13px; color:#607D8B; font-weight:400;">MySQLインストール → データベース作成 → Eclipse実行確認まで</span></h1>
+
+<p>この手順を上から順番にやれば、データベース接続からEclipseでの動作確認まで一通り完了します。<br>
+完成しているコードは GitHub と <code>eclipse-workspace\za-navi</code> に用意済み、MySQL接続用ドライバ（jar）も
+<code>eclipse-workspace\za-navi\WebContent\WEB-INF\lib\</code> に追加済みです。</p>
+
+<h2>STEP 1　MySQLをインストールする</h2>
+<div class="step-box">
+<ol>
+  <li>ブラウザで <code>https://dev.mysql.com/downloads/installer/</code> にアクセスする</li>
+  <li>「MySQL Installer for Windows」をダウンロードする（容量の小さい Web 版でOK。会員登録は
+      ページ下の「No thanks, just start my download.」から不要でダウンロードできる）</li>
+  <li>ダウンロードしたインストーラーを実行する</li>
+  <li>セットアップタイプは <b>「Developer Default」</b> を選択する</li>
+  <li>「Accounts and Roles」画面で <b>rootユーザーのパスワード</b> を設定する
+    <div class="note"><span class="key">★ここで設定したパスワードは絶対に忘れないようにメモしておく。</span>
+    これが <code>DBUtil.java</code> の <code>PASS</code> に書く値になります（STEP 4で使用）。</div>
+  </li>
+  <li>そのまま「Execute」を押してインストール・設定を完了させる</li>
+</ol>
+<p><b>確認方法：</b>スタートメニューの「MySQL 8.0 Command Line Client」を開き、設定したパスワードでログインできればOK。</p>
+</div>
+
+<h2>STEP 2　データベースを作成し、テーブル＋データを一括投入する</h2>
+<div class="step-box">
+<p>使用するSQLファイルは用意済みです：<code>C:\Users\shogo\za-navi\docs\db\za_navi_schema.sql</code></p>
+<p>このファイル1つで「テーブル作成」と「初期データ投入（部署6件・座席180件・ユーザー200件）」が
+同時に完了します。</p>
+<ol>
+  <li>「MySQL 8.0 Command Line Client」を開き、rootパスワードでログインする</li>
+  <li>以下を1行ずつ実行する（コピペ推奨）</li>
+</ol>
+<pre><code>DROP DATABASE IF EXISTS zaseki1;
+CREATE DATABASE zaseki1;
+USE zaseki1;
+SOURCE C:/Users/shogo/za-navi/docs/db/za_navi_schema.sql;</code></pre>
+<p>確認のため、以下も実行してみる：</p>
+<pre><code>SHOW TABLES;
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM seats;</code></pre>
+<p><code>departments / users / seats / reservations</code> の4テーブルが表示され、
+<code>users</code>が200件・<code>seats</code>が180件と出ればOKです。</p>
+<div class="note">データベース名は <code>zaseki1</code> でOKです（<code>CREATE DATABASE zaseki1;</code> はそのまま使えます）。
+ただしテーブルを作る部分は、以前ご自身で途中まで打ち込んでいた CREATE TABLE 文ではなく、
+上記のように <code>SOURCE ...za_navi_schema.sql;</code> で<b>修正済み・完成版のスキーマ</b>を読み込んでください
+（古い方には今回見つかったバグの原因になっていた制約がそのまま入っています）。</div>
+</div>
+
+<h2>STEP 3　プロジェクトフォルダをEclipseに追加する</h2>
+<div class="step-box">
+<ol>
+  <li>Eclipseを起動する</li>
+  <li>「File」→「Import...」</li>
+  <li>「General」→「Existing Projects into Workspace」を選んで「Next」</li>
+  <li>「Select root directory」の「Browse...」で <code>C:\Users\shogo\eclipse-workspace\za-navi</code> を選択</li>
+  <li>一覧に出る「za-navi」にチェックを入れて「Finish」</li>
+</ol>
+<p>すでに開いたことがある場合はこの手順は不要です。</p>
+</div>
+
+<h2>STEP 4　データベース接続情報を書き込む　<span class="key">★今回のキモ</span></h2>
+<div class="step-box">
+<ol>
+  <li>プロジェクトエクスプローラーで <code>za-navi → src → dao → DBUtil.java</code> を開く</li>
+  <li>以下の3行を見つける</li>
+</ol>
+<pre><code>private static final String URL  = "jdbc:mysql://localhost:3306/zaseki1?useSSL=false&amp;serverTimezone=Asia/Tokyo&amp;characterEncoding=UTF-8";
+private static final String USER = "root";
+private static final String PASS = "your_password";</code></pre>
+<p><code>PASS</code> の <code>"your_password"</code> の部分だけを、<b>STEP 1で設定した実際のrootパスワード</b>に書き換える：</p>
+<pre><code>private static final String PASS = "ここに自分で設定したパスワード";</code></pre>
+<p><code>URL</code> と <code>USER</code> はそのままでOK（STEP 2で作ったデータベース名・ユーザー名と一致しています）。
+書き換えたら <code>Ctrl+S</code> で保存。</p>
+</div>
+
+<h2>STEP 5　MySQL接続用ドライバ（jar）の認識を確認する</h2>
+<div class="step-box">
+<ol>
+  <li><code>za-navi → WebContent → WEB-INF → lib</code> に <code>mysql-connector-j-8.4.0.jar</code> があるか確認（追加済み）</li>
+  <li>念のため、プロジェクトを右クリック→「Properties」→「Java Build Path」→「Libraries」タブで一覧に出ているか確認</li>
+  <li>出ていなければプロジェクトを右クリック→「Refresh」(F5)、その後「Project」→「Clean...」を実行</li>
+</ol>
+</div>
+
+<h2>STEP 6　Eclipseでサーバーを起動して動作確認する</h2>
+<div class="step-box">
+<ol>
+  <li><code>za-navi</code> を右クリック→「Run As」→「Run on Server」</li>
+  <li>「Apache Tomcat v9.0」を選んで「Finish」</li>
+  <li>ログイン画面が表示されればサーバー起動は成功</li>
+  <li>ログインして以下が動けば<b>データベース接続も成功</b>：
+    <ul>
+      <li>メニュー画面に「本日の予約」などDB由来の情報が表示される</li>
+      <li>「行先登録」→「在宅」または「出張」でメモを登録してもエラーが出ない</li>
+      <li>「予約確認」→キャンセルボタンを押してもエラーが出ない</li>
+    </ul>
+  </li>
+</ol>
+</div>
+
+<h2>うまくいかないときのチェックポイント</h2>
+<table>
+<tr><th>症状</th><th>考えられる原因</th></tr>
+<tr><td>ログイン画面すら出ない</td><td>Tomcatサーバーが起動していない（STEP 6を再確認）</td></tr>
+<tr><td>画面は出るがログイン後すぐエラー</td><td><code>DBUtil.java</code>のPASSが間違っている、またはMySQLが起動していない</td></tr>
+<tr><td>「Unknown database 'zaseki1'」エラー</td><td>STEP 2のデータベース作成がうまくいっていない</td></tr>
+<tr><td>「ClassNotFoundException: com.mysql.cj.jdbc.Driver」エラー</td><td>jarが認識されていない（STEP 5を再確認、Cleanを実行）</td></tr>
+<tr><td>在宅・出張のメモ／キャンセルでエラー</td><td>STEP 2を<b>修正済みの</b><code>za_navi_schema.sql</code>で実行したか確認（古いSQLを使っていないか）</td></tr>
+</table>
+
+<p style="margin-top:20px; color:#607D8B; font-size:11.5px;">
+エラーが出た場合は、画面に表示されたエラーメッセージをそのまま伝えてもらえれば一緒に解決できます。
+</p>
+
+</body>
+</html>
