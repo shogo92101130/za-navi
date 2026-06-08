@@ -63,12 +63,19 @@
         List<String> deptNames = (List<String>) request.getAttribute("deptNames");
         // 「対象社員を選択してください」などのエラーで画面に戻ってきたときも、
         // 検索条件を入力し直さずに済むよう、直前に入力されていた値を復元する
-        String searchDeptIndividual = (String) request.getAttribute("searchDeptIndividual");
-        String searchNameIndividual = (String) request.getAttribute("searchNameIndividual");
-        String searchDeptMeeting    = (String) request.getAttribute("searchDeptMeeting");
-        String searchNameMeeting    = (String) request.getAttribute("searchNameMeeting");
+        String searchDeptIndividual   = (String) request.getAttribute("searchDeptIndividual");
+        String searchNameIndividual   = (String) request.getAttribute("searchNameIndividual");
+        String searchUserIdIndividual = (String) request.getAttribute("searchUserIdIndividual");
+        String searchDeptMeeting      = (String) request.getAttribute("searchDeptMeeting");
+        String searchNameMeeting      = (String) request.getAttribute("searchNameMeeting");
+        String searchUserIdMeeting    = (String) request.getAttribute("searchUserIdMeeting");
         String selMode = (String) request.getAttribute("selMode");
         if (selMode == null || selMode.isEmpty()) selMode = "individual";
+
+        // 拠点・フロア・エリアの切り替え（ページ再読み込み）やエラー再表示のあとも
+        // 「選択中の対象社員／参加者」が消えないように、直前の選択を引き継ぐ
+        String   selTargetUserId  = (String)   request.getAttribute("selTargetUserId");
+        String[] selTargetUserIds = (String[]) request.getAttribute("selTargetUserIds");
       %>
 
       <!-- ② 対象社員を検索して追加（modeによって切り替え） -->
@@ -88,6 +95,11 @@
             <label>氏名で検索（任意）</label>
             <input type="text" id="searchNameIndividual" name="searchNameIndividual" placeholder="例: 山田"
                    value="<%= searchNameIndividual != null ? searchNameIndividual : "" %>">
+          </div>
+          <div class="form-group">
+            <label>社員IDで検索（任意）</label>
+            <input type="text" id="searchUserIdIndividual" name="searchUserIdIndividual" placeholder="例: 1001"
+                   value="<%= searchUserIdIndividual != null ? searchUserIdIndividual : "" %>">
           </div>
           <div>
             <button type="button" class="btn btn-outline" onclick="searchAccounts('individual')">検索</button>
@@ -120,6 +132,11 @@
             <label>氏名で検索（任意）</label>
             <input type="text" id="searchNameMeeting" name="searchNameMeeting" placeholder="例: 佐藤"
                    value="<%= searchNameMeeting != null ? searchNameMeeting : "" %>">
+          </div>
+          <div class="form-group">
+            <label>社員IDで検索（任意）</label>
+            <input type="text" id="searchUserIdMeeting" name="searchUserIdMeeting" placeholder="例: 1001"
+                   value="<%= searchUserIdMeeting != null ? searchUserIdMeeting : "" %>">
           </div>
           <div>
             <button type="button" class="btn btn-outline" onclick="searchAccounts('meeting')">検索</button>
@@ -275,16 +292,51 @@ function findAccount(userId) {
   return null;
 }
 
+// 拠点・フロア・エリアを切り替えてページが再読み込みされたときも、
+// それまで選んでいた対象社員・参加者が消えないように、サーバーから
+// 引き継がれてきたユーザーIDから選択状態を復元する
+(function restoreSelected() {
+  <%
+    // userId は数値のみのため、JSへの埋め込み前に数値文字列であることを確認しておく
+    // （不正な値が直接スクリプトに混入するのを防ぐため）
+    boolean validIndividual = selTargetUserId != null && selTargetUserId.matches("\\d+");
+  %>
+  var savedIndividual = <%= validIndividual ? "\"" + selTargetUserId + "\"" : "null" %>;
+  if (savedIndividual) {
+    var acc = findAccount(savedIndividual);
+    if (acc) selectedIndividual = acc;
+  }
+
+  var savedMeeting = [
+  <% if (selTargetUserIds != null) {
+       boolean firstId = true;
+       for (String uid : selTargetUserIds) {
+         if (uid == null || !uid.matches("\\d+")) continue;
+         if (!firstId) { %>,<% }
+         firstId = false;
+  %>
+    "<%= uid %>"
+  <%   }
+     } %>
+  ];
+  savedMeeting.forEach(function(uid) {
+    var acc = findAccount(uid);
+    if (acc) selectedMeeting[uid] = acc;
+  });
+})();
+
 function searchAccounts(mode) {
-  var cap   = (mode === 'individual') ? 'Individual' : 'Meeting';
-  var dept  = document.getElementById('searchDept' + cap).value;
-  var name  = document.getElementById('searchName' + cap).value.trim();
-  var box   = document.getElementById('searchResult' + cap);
+  var cap    = (mode === 'individual') ? 'Individual' : 'Meeting';
+  var dept   = document.getElementById('searchDept' + cap).value;
+  var name   = document.getElementById('searchName' + cap).value.trim();
+  var userId = document.getElementById('searchUserId' + cap).value.trim();
+  var box    = document.getElementById('searchResult' + cap);
   box.innerHTML = '';
 
   var hits = ACCOUNTS.filter(function(acc) {
     if (dept !== '' && acc.bName !== dept) return false;
     if (name !== '' && acc.name.indexOf(name) === -1) return false;
+    if (userId !== '' && acc.userId.indexOf(userId) === -1) return false;
     return true;
   });
 
@@ -293,26 +345,38 @@ function searchAccounts(mode) {
     return;
   }
 
+  // 該当者が多くても見やすいように、一覧はプルダウンから選んで「追加」する形式にする
+  var row = document.createElement('div');
+  row.style.display = 'flex';
+  row.style.alignItems = 'center';
+  row.style.gap = '12px';
+  row.style.flexWrap = 'wrap';
+
+  var info = document.createElement('span');
+  info.style.fontSize = '13px';
+  info.style.color = '#757575';
+  info.textContent = '該当：' + hits.length + ' 名';
+  row.appendChild(info);
+
+  var select = document.createElement('select');
+  select.id = 'searchHits' + cap;
+  select.style.minWidth = '260px';
   hits.forEach(function(acc) {
-    var row = document.createElement('div');
-    row.className = 'account-row';
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '12px';
-
-    var label = document.createElement('span');
-    label.textContent = acc.bName + 'の' + acc.name + '（' + acc.userId + '）';
-    row.appendChild(label);
-
-    var addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'btn btn-sm btn-primary';
-    addBtn.textContent = '追加';
-    addBtn.onclick = (function(uid) { return function() { addPerson(mode, uid); }; })(acc.userId);
-    row.appendChild(addBtn);
-
-    box.appendChild(row);
+    var opt = document.createElement('option');
+    opt.value = acc.userId;
+    opt.textContent = acc.bName + ' ' + acc.name + '（社員ID: ' + acc.userId + '）';
+    select.appendChild(opt);
   });
+  row.appendChild(select);
+
+  var addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'btn btn-sm btn-primary';
+  addBtn.textContent = '追加';
+  addBtn.onclick = function() { addPerson(mode, select.value); };
+  row.appendChild(addBtn);
+
+  box.appendChild(row);
 }
 
 function addPerson(mode, userId) {
@@ -355,24 +419,43 @@ function renderSelected(mode) {
   if (list.length === 0) {
     box.innerHTML = '<p style="color:#9E9E9E; font-size:13px;">まだ誰も追加されていません。検索して「追加」を押してください。</p>';
   } else {
-    list.forEach(function(acc) {
-      var chip = document.createElement('span');
-      chip.className = 'badge';
-      chip.style.background = '#E0F2F1';
-      chip.style.color = '#00695C';
-      chip.textContent = acc.bName + 'の' + acc.name;
+    // バッジを詰め込んだ表示は見づらいため、表形式で「誰が選ばれているか」を分かりやすく表示する
+    var table = document.createElement('table');
+    table.className = 'table';
+    table.style.marginTop = '4px';
+    table.innerHTML = '<thead><tr><th>氏名</th><th>部署</th><th>社員ID</th><th></th></tr></thead>';
 
+    var tbody = document.createElement('tbody');
+    list.forEach(function(acc) {
+      var tr = document.createElement('tr');
+
+      var tdName = document.createElement('td');
+      tdName.textContent = acc.name;
+      tr.appendChild(tdName);
+
+      var tdDept = document.createElement('td');
+      tdDept.textContent = acc.bName;
+      tr.appendChild(tdDept);
+
+      var tdId = document.createElement('td');
+      tdId.textContent = acc.userId;
+      tr.appendChild(tdId);
+
+      var tdOp = document.createElement('td');
       var removeBtn = document.createElement('a');
       removeBtn.href = 'javascript:void(0)';
-      removeBtn.style.marginLeft = '8px';
+      removeBtn.className = 'btn btn-sm btn-outline';
       removeBtn.style.color = '#C62828';
-      removeBtn.style.fontWeight = '700';
-      removeBtn.textContent = '×';
+      removeBtn.style.borderColor = '#EF9A9A';
+      removeBtn.textContent = '取り消す';
       removeBtn.onclick = (function(uid) { return function() { removePerson(mode, uid); }; })(acc.userId);
+      tdOp.appendChild(removeBtn);
+      tr.appendChild(tdOp);
 
-      chip.appendChild(removeBtn);
-      box.appendChild(chip);
+      tbody.appendChild(tr);
     });
+    table.appendChild(tbody);
+    box.appendChild(table);
   }
 
   // フォーム送信用の隠しinputを作り直す
@@ -410,11 +493,13 @@ setMode('<%= selMode %>'); // 初期表示（エラーで戻ってきた場合�
 // エラーで画面に戻ってきたとき、検索条件が残っていれば検索結果も出し直しておく
 // （せっかく入力した部署・氏名が消えて、毎回検索し直す手間になるのを防ぐため）
 <% if ((searchDeptIndividual != null && !searchDeptIndividual.isEmpty())
-        || (searchNameIndividual != null && !searchNameIndividual.isEmpty())) { %>
+        || (searchNameIndividual != null && !searchNameIndividual.isEmpty())
+        || (searchUserIdIndividual != null && !searchUserIdIndividual.isEmpty())) { %>
 searchAccounts('individual');
 <% } %>
 <% if ((searchDeptMeeting != null && !searchDeptMeeting.isEmpty())
-        || (searchNameMeeting != null && !searchNameMeeting.isEmpty())) { %>
+        || (searchNameMeeting != null && !searchNameMeeting.isEmpty())
+        || (searchUserIdMeeting != null && !searchUserIdMeeting.isEmpty())) { %>
 searchAccounts('meeting');
 <% } %>
 
@@ -485,8 +570,28 @@ function reloadWith(paramName, value) {
   var form = document.createElement('form');
   form.method = 'post';
   form.action = '<%= request.getContextPath() %>/ControlServlet';
-  [['action', 'adminReserve'], ['base', base], ['floor', floor], ['area', area], ['date', date]]
-    .forEach(function(pair) {
+
+  var modeVal = document.getElementById('modeInput').value;
+  var pairs = [
+    ['action', 'adminReserve'], ['base', base], ['floor', floor], ['area', area], ['date', date],
+    // モード・検索条件・選択中の対象社員も一緒に送り、再読み込み後も
+    // 「①②で入力した内容が消えて個人モードに戻ってしまう」ことがないようにする
+    ['mode', modeVal],
+    ['searchDeptIndividual',   document.getElementById('searchDeptIndividual').value],
+    ['searchNameIndividual',   document.getElementById('searchNameIndividual').value],
+    ['searchUserIdIndividual', document.getElementById('searchUserIdIndividual').value],
+    ['searchDeptMeeting',      document.getElementById('searchDeptMeeting').value],
+    ['searchNameMeeting',      document.getElementById('searchNameMeeting').value],
+    ['searchUserIdMeeting',    document.getElementById('searchUserIdMeeting').value]
+  ];
+  if (selectedIndividual) {
+    pairs.push(['targetUserId', selectedIndividual.userId]);
+  }
+  Object.keys(selectedMeeting).forEach(function(uid) {
+    pairs.push(['targetUserIds', uid]);
+  });
+
+  pairs.forEach(function(pair) {
       var input = document.createElement('input');
       input.type = 'hidden';
       input.name = pair[0];

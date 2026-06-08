@@ -63,13 +63,19 @@ public class AdminReserveLogic implements Logic {
         String area  = req.getParameter("area");
         String date  = req.getParameter("date");
 
-        // 「対象社員を選択してください」等のエラーで画面に戻ってきたときも、
-        // 入力済みの検索条件（部署・氏名）やモードが消えてしまわないように引き継ぐ
-        req.setAttribute("searchDeptIndividual", req.getParameter("searchDeptIndividual"));
-        req.setAttribute("searchNameIndividual", req.getParameter("searchNameIndividual"));
-        req.setAttribute("searchDeptMeeting",    req.getParameter("searchDeptMeeting"));
-        req.setAttribute("searchNameMeeting",    req.getParameter("searchNameMeeting"));
+        // 「対象社員を選択してください」等のエラーで画面に戻ってきたときや、
+        // 拠点・フロア・エリアを切り替えてページが再読み込みされたときも、
+        // 入力済みの検索条件（部署・氏名）・選択中の対象社員・モードが
+        // 消えてしまわないように引き継ぐ（reloadWith()がこれらもPOSTで送ってくる）
+        req.setAttribute("searchDeptIndividual",   req.getParameter("searchDeptIndividual"));
+        req.setAttribute("searchNameIndividual",   req.getParameter("searchNameIndividual"));
+        req.setAttribute("searchUserIdIndividual", req.getParameter("searchUserIdIndividual"));
+        req.setAttribute("searchDeptMeeting",      req.getParameter("searchDeptMeeting"));
+        req.setAttribute("searchNameMeeting",      req.getParameter("searchNameMeeting"));
+        req.setAttribute("searchUserIdMeeting",    req.getParameter("searchUserIdMeeting"));
         req.setAttribute("selMode", req.getParameter("mode"));
+        req.setAttribute("selTargetUserId",  req.getParameter("targetUserId"));
+        req.setAttribute("selTargetUserIds", req.getParameterValues("targetUserIds"));
 
         if (base != null && !base.isEmpty()) {
             req.setAttribute("selBase",  base);
