@@ -322,6 +322,14 @@ function removePerson(mode, userId) {
     selectedIndividual = null;
   } else {
     delete selectedMeeting[userId];
+    // 参加者を減らして選択座席数の上限を下回ったら、超過分の座席選択を解除する
+    var limit = Object.keys(selectedMeeting).length;
+    var checked = document.querySelectorAll('input[name="seatIds"]:checked');
+    for (var i = checked.length - 1; i >= limit; i--) {
+      checked[i].checked = false;
+      var btn = document.getElementById('seatBtn' + checked[i].value);
+      if (btn) { btn.classList.remove('selected'); btn.classList.add('available'); }
+    }
   }
   renderSelected(mode);
 }
@@ -390,8 +398,10 @@ function setMode(mode) {
 setMode('individual'); // 初期表示
 
 function toggleSeat(cb) {
+  var modeVal = document.getElementById('modeInput').value;
+
   // 個人の代理予約は1名・1席のため、他の座席が選択済みなら解除する
-  if (document.getElementById('modeInput').value === 'individual' && cb.checked) {
+  if (modeVal === 'individual' && cb.checked) {
     document.querySelectorAll('input[name="seatIds"]:checked').forEach(function(other) {
       if (other !== cb) {
         other.checked = false;
@@ -400,6 +410,23 @@ function toggleSeat(cb) {
       }
     });
   }
+
+  // 会議用は「選んだ参加者の人数分」までしか座席を選べないようにする
+  if (modeVal === 'meeting' && cb.checked) {
+    var participantCount = Object.keys(selectedMeeting).length;
+    var checkedCount = document.querySelectorAll('input[name="seatIds"]:checked').length;
+    if (participantCount === 0) {
+      cb.checked = false;
+      alert('先に参加者を追加してください。');
+      return;
+    }
+    if (checkedCount > participantCount) {
+      cb.checked = false;
+      alert('参加者数（' + participantCount + '名）分までしか座席を選択できません。');
+      return;
+    }
+  }
+
   var btn = document.getElementById('seatBtn' + cb.value);
   if (cb.checked) {
     btn.classList.remove('available'); btn.classList.add('selected');
@@ -422,7 +449,6 @@ var ADMIN_RESERVE_SCROLL_KEY = 'adminReserveScrollY';
 
 function reloadWith(paramName, value) {
   sessionStorage.setItem(ADMIN_RESERVE_SCROLL_KEY, String(window.scrollY));
-  var url = '<%= request.getContextPath() %>/ControlServlet?action=adminReserve';
   var base  = document.querySelector('[name=base]')  ? document.querySelector('[name=base]').value  : '';
   var floor = document.querySelector('[name=floor]') ? document.querySelector('[name=floor]').value : '';
   var area  = document.querySelector('[name=area]')  ? document.querySelector('[name=area]').value  : '';
@@ -430,10 +456,24 @@ function reloadWith(paramName, value) {
   if (paramName === 'base')  { base = value; floor = ''; area = ''; }
   if (paramName === 'floor') { floor = value; area = ''; }
   if (paramName === 'area')  { area = value; }
-  location.href = url + '&base=' + encodeURIComponent(base)
-               + '&floor=' + encodeURIComponent(floor)
-               + '&area='  + encodeURIComponent(area)
-               + '&date='  + encodeURIComponent(date);
+
+  // 拠点名・フロア名・エリア名は日本語のため、GETのクエリ文字列で送ると
+  // サーバー側の文字コード設定によっては文字化けし、フロア/エリアの選択肢が
+  // 出てこなくなることがある。POSTで送ればサーバー側のUTF-8変換が確実に効くため、
+  // 隠しフォームを組み立ててPOST送信する。
+  var form = document.createElement('form');
+  form.method = 'post';
+  form.action = '<%= request.getContextPath() %>/ControlServlet';
+  [['action', 'adminReserve'], ['base', base], ['floor', floor], ['area', area], ['date', date]]
+    .forEach(function(pair) {
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = pair[0];
+      input.value = pair[1];
+      form.appendChild(input);
+    });
+  document.body.appendChild(form);
+  form.submit();
 }
 </script>
 </body>

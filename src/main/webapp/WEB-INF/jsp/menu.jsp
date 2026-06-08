@@ -64,11 +64,16 @@
   %>
   <% if (request.getAttribute("deptMemberCount") != null) { %>
   <div class="card">
-    <h2>同じ部署の本日の出社状況</h2>
-    <div class="summary-row">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="margin:0;">同じ部署の本日の出社状況</h2>
+      <button type="button" id="deptSeatToggleBtn" class="btn btn-secondary" style="font-size:13px; padding:6px 14px;"
+              onclick="toggleDeptSeatList()">表示/非表示</button>
+    </div>
+    <div class="summary-row" style="margin-top:10px;">
       <span class="badge badge-green">本日出社：<%= request.getAttribute("deptOfficeCount") %> 名</span>
       <span class="badge badge-gray">部署人数：<%= request.getAttribute("deptMemberCount") %> 名</span>
     </div>
+    <div id="deptSeatListBody">
     <% if (deptSeatList != null && !deptSeatList.isEmpty()) { %>
     <table class="table" style="margin-top:12px;">
       <thead><tr><th>氏名</th><th>本日の状況</th><th>座席</th></tr></thead>
@@ -88,7 +93,23 @@
       </tbody>
     </table>
     <% } %>
+    </div>
   </div>
+  <script>
+    // 表示/非表示の状態はブラウザに記憶させ、次回アクセス時も同じ状態で開く
+    (function() {
+      var KEY = 'zaNaviDeptSeatListHidden';
+      var body = document.getElementById('deptSeatListBody');
+      if (localStorage.getItem(KEY) === 'true') body.style.display = 'none';
+    })();
+    function toggleDeptSeatList() {
+      var KEY = 'zaNaviDeptSeatListHidden';
+      var body = document.getElementById('deptSeatListBody');
+      var hidden = body.style.display === 'none';
+      body.style.display = hidden ? '' : 'none';
+      localStorage.setItem(KEY, String(!hidden));
+    }
+  </script>
   <% } %>
 
   <!-- 機能メニュー -->
@@ -97,9 +118,6 @@
     <div class="menu-grid">
       <a href="<%= request.getContextPath() %>/ControlServlet?action=locationRegist" class="menu-btn">
         <img class="ico-lg" src="<%= request.getContextPath() %>/images/ico_location.png" alt="行先登録">行先登録
-      </a>
-      <a href="<%= request.getContextPath() %>/ControlServlet?action=reserve" class="menu-btn">
-        <img class="ico-lg" src="<%= request.getContextPath() %>/images/ico_seat.png" alt="座席予約">座席予約
       </a>
       <a href="<%= request.getContextPath() %>/ControlServlet?action=reserveConfirm" class="menu-btn">
         <img class="ico-lg" src="<%= request.getContextPath() %>/images/ico_confirm.png" alt="予約確認">予約確認

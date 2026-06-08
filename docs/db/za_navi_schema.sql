@@ -49,6 +49,14 @@ CREATE TABLE reservations (
     seat_id      INT(3)       NOT NULL,
     memo         VARCHAR(200) DEFAULT NULL,
     cancel_flag  TINYINT(1)   NOT NULL DEFAULT 0,
+    -- 「有効な（cancel_flag=0の）予約だけを対象に重複チェックしたい」を表現するための生成列。
+    -- 対象外のケースではNULLにし、MySQLのUNIQUEインデックスはNULL同士を重複と見なさない性質を利用する。
+    --   seat_active_key: 席を伴わない予約（在宅・出張＝seat_id=0）やキャンセル済みは対象外 → 同日同席の二重予約だけを防ぐ
+    --   user_active_key: キャンセル済みは対象外 → 1人が同じ日に有効な予約を複数持てないようにする
+    seat_active_key INT(3) GENERATED ALWAYS AS
+        (CASE WHEN cancel_flag = 0 AND seat_id > 0 THEN seat_id END) STORED,
+    user_active_key INT(10) GENERATED ALWAYS AS
+        (CASE WHEN cancel_flag = 0 THEN user_id END) STORED,
     CONSTRAINT fk_reservations_users
         FOREIGN KEY (user_id) REFERENCES users (user_id),
     CONSTRAINT fk_reservations_register_users
@@ -56,9 +64,9 @@ CREATE TABLE reservations (
     CONSTRAINT fk_reservations_seats
         FOREIGN KEY (seat_id) REFERENCES seats (seat_id),
     CONSTRAINT uq_reservations_seat_active
-        UNIQUE (reserve_date, seat_id, cancel_flag),
+        UNIQUE (reserve_date, seat_active_key),
     CONSTRAINT uq_reservations_user_active
-        UNIQUE (user_id, reserve_date, cancel_flag)
+        UNIQUE (reserve_date, user_active_key)
 );
 
 
