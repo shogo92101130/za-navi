@@ -10,53 +10,22 @@ import java.util.*;
 public class SeatsDAO {
 
     /**
-     * 拠点（オフィス）名 → フロアマップ画像ファイル名の対応は office_images テーブルで管理する。
-     * マスタ更新画面から登録・変更でき、新しいオフィスが増えたときもコード修正なしで
-     * 画像を差し込めるようにするため（画像ファイル自体は src/main/webapp/images/ に置く）。
-     * 未登録の拠点は getOfficeImage() が null を返し、JSP側は画像なしで表示する。
+     * 拠点（オフィス）名 → フロアマップ画像ファイル名の対応表。
+     * 座席利用状況確認画面で、選んだ拠点に応じた画像を切り替えて表示するために使う。
+     * 画像が用意できていない拠点（例:「中野」）はここに追加しない
+     * → getOfficeImage() が null を返し、JSP側は画像なしで表示する。
+     *
+     * 新しいオフィスの画像を追加したときは、ここにも対応を追記すること。
      */
+    static final Map<String, String> OFFICE_IMAGES = new LinkedHashMap<>();
+    static {
+        OFFICE_IMAGES.put("三田", "office_mita.png");
+        OFFICE_IMAGES.put("芝浦", "office_shibaura.png");
+    }
 
     /** 拠点名に対応するフロアマップ画像ファイル名を返す（未登録の拠点はnull） */
     public String getOfficeImage(String baseName) {
-        if (baseName == null || baseName.isEmpty()) return null;
-        String sql = "SELECT image_file FROM office_images WHERE base_name = ?";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, baseName);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getString("image_file") : null;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("オフィス画像の取得に失敗しました", e);
-        }
-    }
-
-    /** 拠点名に対応するフロアマップ画像ファイル名を登録・変更する（新規オフィスにも対応） */
-    public void setOfficeImage(String baseName, String imageFile) {
-        String sql = "INSERT INTO office_images (base_name, image_file) VALUES (?, ?) " +
-                     "ON DUPLICATE KEY UPDATE image_file = VALUES(image_file)";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, baseName);
-            ps.setString(2, imageFile);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("オフィス画像の登録に失敗しました", e);
-        }
-    }
-
-    /** マスタ更新画面で「画像が登録済みの拠点」も一覧できるように、登録済みの対応を全件返す */
-    public Map<String, String> getOfficeImages() {
-        String sql = "SELECT base_name, image_file FROM office_images ORDER BY base_name";
-        Map<String, String> map = new LinkedHashMap<>();
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) map.put(rs.getString("base_name"), rs.getString("image_file"));
-        } catch (SQLException e) {
-            throw new RuntimeException("オフィス画像一覧の取得に失敗しました", e);
-        }
-        return map;
+        return OFFICE_IMAGES.get(baseName);
     }
 
     private Seat map(ResultSet rs) throws SQLException {

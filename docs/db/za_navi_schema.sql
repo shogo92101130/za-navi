@@ -25,7 +25,6 @@ CREATE DATABASE IF NOT EXISTS zaseki1
 USE zaseki1;
 
 DROP TABLE IF EXISTS reservations;
-DROP TABLE IF EXISTS office_images;
 DROP TABLE IF EXISTS seats;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS departments;
@@ -54,15 +53,6 @@ CREATE TABLE seats (
     area_name VARCHAR(10)  NOT NULL,
     f_name    VARCHAR(10)  NOT NULL,
     seat_name VARCHAR(20)  NOT NULL
-);
-
--- ─────────────── オフィス（拠点）のフロアマップ画像 ───────────────
--- 拠点名 → 画像ファイル名（src/main/webapp/images/ 配下）の対応表。
--- マスタ更新画面の「④ フロアマップ画像を登録する」から登録・変更でき、
--- 新しいオフィスを追加したときもコード修正なしで画像を差し込める。
-CREATE TABLE office_images (
-    base_name  VARCHAR(50)  PRIMARY KEY,
-    image_file VARCHAR(100) NOT NULL
 );
 
 -- ─────────────── 予約・行先登録 ───────────────
@@ -132,11 +122,6 @@ CROSS JOIN (
     SELECT 1 AS num UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
     UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
 ) n;
-
--- ─────────────── オフィスのフロアマップ画像（画像ファイルは images フォルダに用意済みのもののみ登録） ───────────────
-INSERT INTO office_images (base_name, image_file) VALUES
-    ('三田', 'office_mita.png'),
-    ('芝浦', 'office_shibaura.png');
 
 -- ─────────────── アカウント（1001〜1200。1001のみ管理者、他は一般） ───────────────
 INSERT INTO users (user_id, password, b_id, name, admin) VALUES

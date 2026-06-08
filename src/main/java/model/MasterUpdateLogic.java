@@ -58,21 +58,6 @@ public class MasterUpdateLogic implements Logic {
                 return "/WEB-INF/jsp/masterUpdate.jsp";
             }
 
-            case "doSetOfficeImage": {
-                // フロアマップ画像の登録・変更（新しいオフィスを増やしたときも、
-                // ここで対応付けを登録するだけで座席利用状況・代理予約にも画像が表示される）
-                String base = req.getParameter("imageBaseName");
-                String file = req.getParameter("imageFileName");
-                if (base == null || base.isEmpty() || file == null || file.isEmpty()) {
-                    req.setAttribute("message", "オフィスと画像ファイル名の両方を入力してください。");
-                } else {
-                    new SeatsDAO().setOfficeImage(base, file.trim());
-                    req.setAttribute("message", "「" + base + "」のフロアマップ画像を「" + file.trim() + "」として登録しました。");
-                }
-                setListAttributes(req, dao);
-                return "/WEB-INF/jsp/masterUpdate.jsp";
-            }
-
             default:
                 setListAttributes(req, dao);
                 return "/WEB-INF/jsp/masterUpdate.jsp";
@@ -116,6 +101,5 @@ public class MasterUpdateLogic implements Logic {
         req.setAttribute("selectedBase", selectedBase);
         req.setAttribute("officeImage",  (selectedBase != null && !selectedBase.isEmpty())
                 ? seatsDAO.getOfficeImage(selectedBase) : null);
-        req.setAttribute("officeImages", seatsDAO.getOfficeImages());
     }
 }

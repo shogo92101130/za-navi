@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="java.util.List, java.util.Map, entity.Seat" %>
+<%@ page import="java.util.List, entity.Seat" %>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -25,7 +25,6 @@
       Seat editSeat       = (Seat) request.getAttribute("editSeat");
       String selectedBase = (String) request.getAttribute("selectedBase");
       String officeImage  = (String) request.getAttribute("officeImage");
-      Map<String, String> officeImages = (Map<String, String>) request.getAttribute("officeImages");
       String ctx = request.getContextPath();
     %>
 
@@ -57,8 +56,8 @@
     </div>
     <% } else if (selectedBase != null && !selectedBase.isEmpty()) { %>
     <p style="color:#9E9E9E; font-size:12px; margin-bottom:16px;">
-      ※「<%= selectedBase %>」のフロアマップ画像はまだ登録されていません。画像ファイルを
-      <code>images</code> フォルダに置いたうえで、下の「④ フロアマップ画像を登録する」から登録してください。
+      ※「<%= selectedBase %>」のフロアマップ画像はまだ登録されていません。画像を用意したら
+      <code>SeatsDAO</code> の <code>OFFICE_IMAGES</code> に追加すると、ここにも表示されます。
     </p>
     <% } %>
 
@@ -201,56 +200,10 @@
         </div>
       </form>
       <p style="font-size:11px; color:#9E9E9E; margin-top:10px;">
-        ③ 新しいオフィスを増やしたときは、フロアマップ画像も用意して下の「④」から登録すると、
-        この画面・座席利用状況・代理予約の画面にも画像が表示されるようになります。
+        ③ 新しいオフィスを増やしたときは、フロアマップ画像も用意して
+        <code>SeatsDAO</code> の <code>OFFICE_IMAGES</code> に登録すると、この画面・座席利用状況・代理予約の画面にも
+        画像が表示されるようになります（手順は <code>SeatsDAO.java</code> 冒頭のコメントを参照）。
       </p>
-    </div>
-
-    <!-- フロアマップ画像の登録 -->
-    <div class="card" style="background:#E3F2FD; border:2px solid #64B5F6;">
-      <h2 style="color:#1565C0;">④ フロアマップ画像を登録する</h2>
-      <p style="font-size:12px; color:#757575; margin-bottom:10px;">
-        画像ファイルをあらかじめ <code>images</code> フォルダに置いたうえで、対応するオフィスと
-        ファイル名を登録してください。新しいオフィスを追加したときも、ここで画像を差し込めます
-        （登録済みのオフィスを選んで再登録すれば、画像の差し替えにもなります）。
-      </p>
-      <form action="<%= ctx %>/ControlServlet" method="post">
-        <input type="hidden" name="action" value="doSetOfficeImage">
-        <div class="filter-row">
-          <div class="form-group">
-            <label>オフィス</label>
-            <select name="imageBaseName" required>
-              <option value="">-- 選択 --</option>
-              <% if (bases != null) for (String b : bases) { %>
-              <option value="<%= b %>"><%= b %><%= (officeImages != null && officeImages.containsKey(b)) ? "（登録済み）" : "" %></option>
-              <% } %>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>画像ファイル名</label>
-            <input type="text" name="imageFileName" placeholder="例: office_shibuya.png" required>
-          </div>
-          <div>
-            <button type="submit" class="btn btn-primary">登録する</button>
-          </div>
-        </div>
-      </form>
-
-      <% if (officeImages != null && !officeImages.isEmpty()) { %>
-      <table class="table" style="margin-top:14px;">
-        <thead><tr><th>オフィス</th><th>画像ファイル名</th></tr></thead>
-        <tbody>
-          <% for (Map.Entry<String, String> e : officeImages.entrySet()) { %>
-          <tr>
-            <td><%= e.getKey() %></td>
-            <td><code><%= e.getValue() %></code></td>
-          </tr>
-          <% } %>
-        </tbody>
-      </table>
-      <% } else { %>
-      <p style="color:#9E9E9E; font-size:13px; margin-top:10px;">まだ画像が登録されているオフィスはありません。</p>
-      <% } %>
     </div>
 
     <script>
