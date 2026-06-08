@@ -22,17 +22,19 @@
     <%
       List<Seat> seats    = (List<Seat>) request.getAttribute("seats");
       List<String> bases  = (List<String>) request.getAttribute("bases");
-      Seat editSeat       = (Seat) request.getAttribute("editSeat");
-      String selectedBase = (String) request.getAttribute("selectedBase");
-      String officeImage  = (String) request.getAttribute("officeImage");
+      Seat editSeat        = (Seat) request.getAttribute("editSeat");
+      String selectedBase  = (String) request.getAttribute("selectedBase");
+      String selectedFloor = (String) request.getAttribute("selectedFloor");
+      List<String> floors  = (List<String>) request.getAttribute("floors");
+      String officeImage   = (String) request.getAttribute("officeImage");
       String ctx = request.getContextPath();
     %>
 
     <p style="font-size:12px; color:#757575; margin-bottom:10px;">
-      ① オフィスを選ぶと、フロアマップ画像とそのオフィスの座席だけを表示できます（見やすさ・確認用の絞り込みです）。
+      ① オフィス、② フロアを選ぶと、そのフロアのマップ画像とその条件に絞り込んだ座席だけを表示できます（見やすさ・確認用の絞り込みです）。
     </p>
 
-    <!-- ① オフィスを選んで表示・絞り込み -->
+    <!-- ① オフィス・② フロアを選んで表示・絞り込み -->
     <form action="<%= ctx %>/ControlServlet" method="get" style="margin-bottom:14px;">
       <input type="hidden" name="action" value="masterUpdate">
       <div class="filter-row">
@@ -45,25 +47,46 @@
             <% } %>
           </select>
         </div>
+        <div class="form-group">
+          <label>② フロアを選択</label>
+          <select name="filterFloor" onchange="submitMasterFilterForm(this)" <%= (floors == null) ? "disabled" : "" %>>
+            <option value="">-- すべてのフロアを表示 --</option>
+            <% if (floors != null) for (String f : floors) { %>
+            <option value="<%= f %>" <%= f.equals(selectedFloor) ? "selected" : "" %>><%= f %></option>
+            <% } %>
+          </select>
+        </div>
       </div>
     </form>
 
-    <!-- 選んだオフィスのフロアマップ画像（画像を見ながら座席を確認・追加できるように） -->
+    <!-- 選んだオフィス・フロアのマップ画像（画像を見ながら座席を確認・追加できるように。
+         フロアまで選ぶとそのフロア専用の画像に切り替わる＝新しいオフィスを追加したときも
+         フロアを選んだ時点でそのフロアのマップに切り替わる） -->
     <% if (officeImage != null) { %>
     <div style="margin-bottom:16px;">
-      <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selectedBase %>のフロアマップ"
+      <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selectedBase %><%= selectedFloor != null ? selectedFloor : "" %>のフロアマップ"
            style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
     </div>
     <% } else if (selectedBase != null && !selectedBase.isEmpty()) { %>
     <p style="color:#9E9E9E; font-size:12px; margin-bottom:16px;">
-      ※「<%= selectedBase %>」のフロアマップ画像はまだ登録されていません。画像を用意したら
-      <code>SeatsDAO</code> の <code>OFFICE_IMAGES</code> に追加すると、ここにも表示されます。
+      ※「<%= selectedBase %><%= (selectedFloor != null && !selectedFloor.isEmpty()) ? selectedFloor : "" %>」のフロアマップ画像はまだ登録されていません。
+      <code>images</code> フォルダに画像ファイルを追加して、
+      <code>SeatsDAO</code> の <code>OFFICE_IMAGES</code> に「拠点名」（フロアごとに画像が違う場合は「拠点名_フロア名」、例:「<%= selectedBase %>_<%= (selectedFloor != null && !selectedFloor.isEmpty()) ? selectedFloor : "1F" %>」）の
+      キーで登録すると、ここにも表示されます。
     </p>
     <% } %>
 
     <!-- 座席一覧（①で選んだオフィスのみ表示。未選択ならすべて表示） -->
     <h3 style="margin-bottom:8px; color:var(--teal-dark);">
-      <%= (selectedBase != null && !selectedBase.isEmpty()) ? (selectedBase + "の座席一覧") : "座席一覧（全オフィス）" %>
+      <%
+        String listTitle;
+        if (selectedBase != null && !selectedBase.isEmpty()) {
+          listTitle = selectedBase + ((selectedFloor != null && !selectedFloor.isEmpty()) ? selectedFloor : "") + "の座席一覧";
+        } else {
+          listTitle = "座席一覧（全オフィス）";
+        }
+      %>
+      <%= listTitle %>
       <span style="font-size:12px; color:#9E9E9E; font-weight:400;">（<%= seats != null ? seats.size() : 0 %> 席）</span>
     </h3>
     <!--
@@ -104,7 +127,7 @@
           <td><%= s.getSeatName() %></td>
           <td>
             <!-- 更新リンク → 編集フォームにIDを渡す -->
-            <a href="<%= ctx %>/ControlServlet?action=masterEdit&seatId=<%= s.getSeatId() %>&filterBase=<%= selectedBase != null ? selectedBase : "" %>"
+            <a href="<%= ctx %>/ControlServlet?action=masterEdit&seatId=<%= s.getSeatId() %>&filterBase=<%= selectedBase != null ? selectedBase : "" %>&filterFloor=<%= selectedFloor != null ? selectedFloor : "" %>"
                class="btn btn-primary btn-sm">更新</a>
             <!-- 削除ボタン（POSTフォームを外部に配置し form= で紐づけ） -->
             <button type="submit" form="delForm<%= s.getSeatId() %>" class="btn btn-danger btn-sm"
@@ -151,7 +174,7 @@
           </div>
           <div>
             <button type="submit" class="btn btn-primary">更新する</button>
-            <a href="<%= ctx %>/ControlServlet?action=masterUpdate&filterBase=<%= selectedBase != null ? selectedBase : "" %>" class="btn btn-secondary">キャンセル</a>
+            <a href="<%= ctx %>/ControlServlet?action=masterUpdate&filterBase=<%= selectedBase != null ? selectedBase : "" %>&filterFloor=<%= selectedFloor != null ? selectedFloor : "" %>" class="btn btn-secondary">キャンセル</a>
           </div>
         </div>
       </form>
@@ -200,9 +223,11 @@
         </div>
       </form>
       <p style="font-size:11px; color:#9E9E9E; margin-top:10px;">
-        ③ 新しいオフィスを増やしたときは、フロアマップ画像も用意して
-        <code>SeatsDAO</code> の <code>OFFICE_IMAGES</code> に登録すると、この画面・座席利用状況・代理予約の画面にも
-        画像が表示されるようになります（手順は <code>SeatsDAO.java</code> 冒頭のコメントを参照）。
+        ③ 新しいオフィス（オフィスレイアウト画像）を増やすときは、
+        <code>images</code> フォルダに画像ファイルを追加して、
+        <code>SeatsDAO</code> の <code>OFFICE_IMAGES</code> に「拠点名」（またはフロアごとに画像が違う場合は
+        「拠点名_フロア名」、例: 「芝浦_1F」）のキーで登録してください。この画面・座席利用状況・代理予約・座席予約の
+        各画面に画像が表示されるようになります（手順は <code>SeatsDAO.java</code> 冒頭のコメントを参照）。
       </p>
     </div>
 

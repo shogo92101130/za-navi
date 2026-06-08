@@ -10,21 +10,56 @@ import java.util.*;
 public class SeatsDAO {
 
     /**
-     * 拠点（オフィス）名 → フロアマップ画像ファイル名の対応表。
-     * 座席利用状況確認画面で、選んだ拠点に応じた画像を切り替えて表示するために使う。
-     * 画像が用意できていない拠点（例:「中野」）はここに追加しない
+     * 拠点（オフィス）・フロア → フロアマップ画像ファイル名の対応表。
+     * 座席利用状況・代理予約・座席予約の各画面で、選んだ拠点（とフロア）に応じた
+     * 画像を切り替えて表示するために使う。
+     *
+     * キーは「拠点名」または「拠点名_フロア名」。
+     * フロアごとに画像が異なる場合は "拠点名_フロア名" で個別に登録すると、
+     * getOfficeImage(拠点, フロア) がそちらを優先して返す
+     * （例: 芝浦の1階と2階で画像が違う → "芝浦_1F" "芝浦_2F" をそれぞれ登録）。
+     * フロアで画像が変わらない拠点は「拠点名」のみのキーで登録すればよい。
+     *
+     * 画像が用意できていない拠点・フロアはここに追加しない
      * → getOfficeImage() が null を返し、JSP側は画像なしで表示する。
      *
-     * 新しいオフィスの画像を追加したときは、ここにも対応を追記すること。
+     * 新しいオフィス（やフロア）の画像を追加したときは、ここにも対応を追記すること。
      */
     static final Map<String, String> OFFICE_IMAGES = new LinkedHashMap<>();
     static {
+        // フロアごとの専用マップ（1Fと2Fでレイアウトが異なるため、フロアを選んだ時点で
+        // 該当フロアの画像に切り替わる。代理予約・座席利用状況・座席予約・マスタ更新の
+        // どの画面でも、拠点とフロアの両方が決まった時点でこちらが優先表示される）
+        OFFICE_IMAGES.put("三田_1F", "office_mita_1F.png");
+        OFFICE_IMAGES.put("三田_2F", "office_mita_2F.png");
+        OFFICE_IMAGES.put("芝浦_1F", "office_shibaura_1F.png");
+        OFFICE_IMAGES.put("芝浦_2F", "office_shibaura_2F.png");
+        OFFICE_IMAGES.put("中野_1F", "office_nakano_1F.png");
+        OFFICE_IMAGES.put("中野_2F", "office_nakano_2F.png");
+
+        // 拠点単位のフォールバック画像（フロアが未選択、またはそのフロア専用の画像が
+        // まだ無い場合に使われる。例: 新しいフロアを増設したがまだ画像を用意していない時）
         OFFICE_IMAGES.put("三田", "office_mita.png");
         OFFICE_IMAGES.put("芝浦", "office_shibaura.png");
+        OFFICE_IMAGES.put("中野", "office_nakano.png");
     }
 
     /** 拠点名に対応するフロアマップ画像ファイル名を返す（未登録の拠点はnull） */
     public String getOfficeImage(String baseName) {
+        return getOfficeImage(baseName, null);
+    }
+
+    /**
+     * 拠点名・フロア名に対応するフロアマップ画像ファイル名を返す。
+     * "拠点名_フロア名" の専用画像が登録されていればそれを優先し、
+     * 無ければ「拠点名のみ」の画像にフォールバックする（どちらも無ければ null）。
+     */
+    public String getOfficeImage(String baseName, String floorName) {
+        if (baseName == null || baseName.isEmpty()) return null;
+        if (floorName != null && !floorName.isEmpty()) {
+            String perFloor = OFFICE_IMAGES.get(baseName + "_" + floorName);
+            if (perFloor != null) return perFloor;
+        }
         return OFFICE_IMAGES.get(baseName);
     }
 

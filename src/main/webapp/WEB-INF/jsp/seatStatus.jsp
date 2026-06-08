@@ -97,10 +97,10 @@
       </div>
     </form>
 
-    <!-- 拠点ごとのフロアマップ画像（拠点を選ぶと該当オフィスの画像に切り替わる） -->
+    <!-- 拠点・フロアごとのフロアマップ画像（選ぶと該当の画像に切り替わる） -->
     <%
       String officeImage = (filterBase != null && !filterBase.isEmpty())
-              ? new SeatsDAO().getOfficeImage(filterBase) : null;
+              ? new SeatsDAO().getOfficeImage(filterBase, filterFloor) : null;
     %>
     <% if (officeImage != null) { %>
     <div style="margin:16px 0;">

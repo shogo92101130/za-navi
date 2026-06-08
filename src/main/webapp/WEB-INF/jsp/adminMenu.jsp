@@ -74,16 +74,24 @@
         <span class="badge badge-gray">部署人数：<%= request.getAttribute("deptMemberCount") %> 名</span>
       </div>
       <% if (deptSeatList != null && !deptSeatList.isEmpty()) { %>
-      <div class="summary-row" style="margin-top:10px; gap:8px;">
+      <table class="table" style="margin-top:10px;">
+        <thead><tr><th>氏名</th><th>拠点</th><th>座席</th></tr></thead>
+        <tbody>
         <% for (Map<String, Object> row : deptSeatList) {
              Seat seat = (Seat) row.get("seat");
+             String baseLabel = seat != null ? seat.getBaseName() : "─";
              String seatLabel = seat != null
                  ? seat.getFName() + " " + seat.getAreaName() + " " + seat.getSeatName()
                  : "座席未定";
         %>
-        <span class="badge badge-gray"><%= row.get("name") %>　<span style="color:#00695C;">(<%= seatLabel %>)</span></span>
+          <tr>
+            <td><%= row.get("name") %></td>
+            <td><%= baseLabel %></td>
+            <td><%= seatLabel %></td>
+          </tr>
         <% } %>
-      </div>
+        </tbody>
+      </table>
       <% } %>
     </div>
   </div>
@@ -125,17 +133,19 @@
         <p style="color:#9E9E9E; font-size:13px; margin:0;">座席が確定している予約はまだありません。</p>
         <% } else { %>
         <table class="table" style="margin-top:4px;">
-          <thead><tr><th>氏名</th><th>部署</th><th>座席</th></tr></thead>
+          <thead><tr><th>氏名</th><th>部署</th><th>拠点</th><th>座席</th></tr></thead>
           <tbody>
           <% for (Map<String, Object> p : people) {
                Seat seat = (Seat) p.get("seat");
+               String baseLabel = seat != null ? seat.getBaseName() : "─";
                String seatLabel = seat != null
-                   ? seat.getBaseName() + " " + seat.getFName() + " " + seat.getAreaName() + " " + seat.getSeatName()
+                   ? seat.getFName() + " " + seat.getAreaName() + " " + seat.getSeatName()
                    : "─";
           %>
             <tr>
               <td><%= p.get("name") %></td>
               <td><%= p.get("bName") %></td>
+              <td><%= baseLabel %></td>
               <td><%= seatLabel %></td>
             </tr>
           <% } %>

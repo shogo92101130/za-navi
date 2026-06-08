@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 14px;
+    color: #212121;
+    background: #fff;
+    padding: 40px 48px;
+    width: 794px;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1565C0;
+    border-bottom: 3px solid #1565C0;
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0D47A1;
+    background: #E3F2FD;
+    padding: 6px 12px;
+    border-left: 4px solid #1565C0;
+    margin: 24px 0 10px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    margin: 14px 0 6px;
+  }
+  p { margin-bottom: 8px; line-height: 1.7; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  th {
+    background: #1565C0;
+    color: #fff;
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: 700;
+  }
+  td {
+    padding: 6px 10px;
+    border: 1px solid #BDBDBD;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #F5F5F5; }
+  .badge-old {
+    display: inline-block;
+    background: #EF9A9A;
+    color: #B71C1C;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+  .badge-new {
+    display: inline-block;
+    background: #A5D6A7;
+    color: #1B5E20;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+  code {
+    background: #F5F5F5;
+    border: 1px solid #E0E0E0;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px;
+    color: #C62828;
+  }
+  pre {
+    background: #263238;
+    color: #ECEFF1;
+    border-radius: 5px;
+    padding: 12px 14px;
+    font-size: 12px;
+    font-family: "Consolas", "Courier New", monospace;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+  }
+  .note {
+    background: #FFF8E1;
+    border-left: 4px solid #F9A825;
+    padding: 8px 12px;
+    font-size: 13px;
+    margin: 10px 0;
+    line-height: 1.6;
+  }
+  .meta {
+    font-size: 12px;
+    color: #757575;
+    margin-bottom: 24px;
+  }
+  .section-intro { color: #555; font-size: 13px; margin-bottom: 10px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h1>座・Navi — データベース変更点まとめ</h1>
+<p class="meta">作成日: 2026-06-09　／　対象: zaseki1 データベース（za_navi_schema.sql）</p>
+
+<!-- ──────────────────────────────────────── -->
+<h2>1. 概要</h2>
+<p class="section-intro">
+初期バージョン（最初のコミット）から現在のバージョン（2026-06-09 時点）にかけて、以下の目的で<code>za_navi_schema.sql</code>を修正しました。変更は大きく3点です。
+</p>
+<table>
+<thead><tr><th>#</th><th>変更箇所</th><th>変更の目的</th></tr></thead>
+<tbody>
+<tr><td>①</td><td>DB名の変更</td><td>アプリ設定（DBUtil.java）の接続先に合わせる</td></tr>
+<tr><td>②</td><td>一発実行対応（CREATE DATABASE / SET NAMES 追加）</td><td>mysql コマンドからのリダイレクトで完結できるようにする</td></tr>
+<tr><td>③</td><td>reservations テーブルの制約修正</td><td>在宅・出張登録エラー／キャンセルエラーのバグ解消</td></tr>
+</tbody>
+</table>
+
+<!-- ──────────────────────────────────────── -->
+<h2>2. DB名の変更</h2>
+<p class="section-intro">アプリ側の接続設定（<code>DBUtil.java</code>）が <code>zaseki1</code> を前提としているため、スキーマファイルの DB 名を統一しました。</p>
+<table>
+<thead><tr><th>項目</th><th>変更前</th><th>変更後</th></tr></thead>
+<tbody>
+<tr>
+  <td>データベース名</td>
+  <td><span class="badge-old">za_navi_db</span></td>
+  <td><span class="badge-new">zaseki1</span></td>
+</tr>
+</tbody>
+</table>
+
+<!-- ──────────────────────────────────────── -->
+<h2>3. 一発実行対応（スクリプト冒頭の追加）</h2>
+<p class="section-intro">以前のバージョンは手動で DB を作成してから流し込む必要がありました。以下の3行を追加し、<code>mysql -u root -p &lt; za_navi_schema.sql</code> の1コマンドで「DB作成→テーブル作成→初期データ投入」まで完結するようにしました。</p>
+<pre>SET NAMES utf8mb4;                         -- 文字化け防止（Windows mysqlクライアント対策）
+
+CREATE DATABASE IF NOT EXISTS zaseki1
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE zaseki1;</pre>
+<div class="note">
+  <strong>ポイント：</strong><code>SET NAMES utf8mb4</code> を先頭に置くことで、Windows の mysql コマンドラインクライアント（デフォルト cp932）経由でも日本語 INSERT が文字化けしなくなります。
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<h2>4. reservations テーブルの制約修正</h2>
+
+<h3>4-1. 背景（修正前の問題）</h3>
+<p class="section-intro">修正前の reservations テーブルには以下の2つのバグがありました。</p>
+<table>
+<thead><tr><th>バグ</th><th>症状</th><th>原因</th></tr></thead>
+<tbody>
+<tr>
+  <td>在宅・出張でエラー</td>
+  <td>2人目以降が在宅・出張で登録しようとするとエラー</td>
+  <td>UNIQUE制約が <code>seat_id=0</code>（座席なし）を複数許容していなかった</td>
+</tr>
+<tr>
+  <td>キャンセルでエラー</td>
+  <td>予約確認画面からキャンセル操作するとエラー</td>
+  <td>UNIQUE制約がキャンセル済み行（cancel_flag=1）を重複とみなしていた</td>
+</tr>
+<tr>
+  <td>在宅・出張のFK違反</td>
+  <td>在宅・出張登録時にシステムエラー</td>
+  <td><code>fk_reservations_seats</code> が <code>seat_id=0</code> を許容していない（0は seats に存在しない）</td>
+</tr>
+</tbody>
+</table>
+
+<h3>4-2. UNIQUE 制約の変更</h3>
+<p class="section-intro">キャンセル済み・座席なしの行を「重複チェックの対象外」にするため、<strong>生成列（GENERATED COLUMN）</strong>を介した UNIQUE 制約に置き換えました。</p>
+
+<table>
+<thead><tr><th>項目</th><th>変更前</th><th>変更後</th></tr></thead>
+<tbody>
+<tr>
+  <td>追加カラム</td>
+  <td>—（なし）</td>
+  <td><code>seat_active_key INT GENERATED ALWAYS AS</code><br>
+      <code>(CASE WHEN cancel_flag=0 AND seat_id&gt;0 THEN seat_id END) STORED</code><br><br>
+      <code>user_active_key INT GENERATED ALWAYS AS</code><br>
+      <code>(CASE WHEN cancel_flag=0 THEN user_id END) STORED</code></td>
+</tr>
+<tr>
+  <td>uq_reservations_seat_active</td>
+  <td><code>UNIQUE (reserve_date, seat_id, cancel_flag)</code></td>
+  <td><code>UNIQUE (reserve_date, seat_active_key)</code></td>
+</tr>
+<tr>
+  <td>uq_reservations_user_active</td>
+  <td><code>UNIQUE (user_id, reserve_date, cancel_flag)</code></td>
+  <td><code>UNIQUE (reserve_date, user_active_key)</code></td>
+</tr>
+</tbody>
+</table>
+
+<div class="note">
+  <strong>仕組み：</strong>生成列は「有効な予約だけ実値、それ以外は NULL」になります。MySQL の UNIQUE インデックスは NULL 同士を重複とみなさないため、キャンセル済み行や在宅・出張（seat_id=0）が何件あっても制約違反になりません。
+</div>
+
+<h3>4-3. 外部キー制約の削除</h3>
+<table>
+<thead><tr><th>変更前</th><th>変更後</th><th>理由</th></tr></thead>
+<tbody>
+<tr>
+  <td><code>CONSTRAINT fk_reservations_seats</code><br>
+      <code>FOREIGN KEY (seat_id)</code><br>
+      <code>REFERENCES seats (seat_id)</code></td>
+  <td><span class="badge-old">削除</span></td>
+  <td>在宅・出張は <code>seat_id=0</code> を使う設計だが、<code>0</code> は seats テーブルに存在しないため FK 違反になっていた。アプリ側で有効な seat_id しかセットしない保証があるため、FK は不要と判断。</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ──────────────────────────────────────── -->
+<h2>5. テーブル構成（変更なし）</h2>
+<p class="section-intro">テーブル構成・初期データ（部署 6 件、座席 180 席、ユーザー 200 名）はそのまま据え置きです。</p>
+<table>
+<thead><tr><th>テーブル</th><th>件数</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>departments</td><td>6 件</td><td>D001〜D006</td></tr>
+<tr><td>seats</td><td>180 席</td><td>三田・芝浦・中野 × 1F/2F × A/B/C × 10席</td></tr>
+<tr><td>users</td><td>200 名</td><td>user_id 1001〜1200（1001 のみ admin=1）</td></tr>
+<tr><td>reservations</td><td>0 件</td><td>初期投入なし（アプリから登録）</td></tr>
+</tbody>
+</table>
+
+</body>
+</html>

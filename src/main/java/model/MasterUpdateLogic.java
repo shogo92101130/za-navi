@@ -84,22 +84,31 @@ public class MasterUpdateLogic implements Logic {
 
     /**
      * 一覧表示・絞り込み・フロアマップ画像表示に必要な属性をまとめてセットする。
-     * 「① オフィスを選んで見る」ための bases / selectedBase / officeImage と、
-     * 選んだオフィスだけに絞り込んだ座席一覧 seats をリクエストに積む。
+     * 「① オフィスを選んで見る」「② フロアを選んで見る」ための
+     * bases / selectedBase / floors / selectedFloor / officeImage と、
+     * 選んだオフィス・フロアだけに絞り込んだ座席一覧 seats をリクエストに積む。
+     *
+     * フロアまで選ぶと、そのフロア専用のマップ（"拠点名_フロア名"）があれば優先表示される
+     * （無ければ拠点単位の画像にフォールバック）→ 新しいオフィスを追加したときも、
+     * フロアを選んだ時点でそのフロアのマップ画像に切り替わる。
      */
     private void setListAttributes(HttpServletRequest req, MastersDAO dao) {
         SeatsDAO seatsDAO = new SeatsDAO();
-        String selectedBase = req.getParameter("filterBase");
+        String selectedBase  = req.getParameter("filterBase");
+        String selectedFloor = req.getParameter("filterFloor");
+        boolean hasBase  = selectedBase  != null && !selectedBase.isEmpty();
+        boolean hasFloor = selectedFloor != null && !selectedFloor.isEmpty();
 
         List<Seat> all = dao.getAll();
-        List<Seat> seats = (selectedBase != null && !selectedBase.isEmpty())
-                ? all.stream().filter(s -> selectedBase.equals(s.getBaseName())).collect(Collectors.toList())
-                : all;
+        List<Seat> seats = all;
+        if (hasBase)  seats = seats.stream().filter(s -> selectedBase.equals(s.getBaseName())).collect(Collectors.toList());
+        if (hasFloor) seats = seats.stream().filter(s -> selectedFloor.equals(s.getFName())).collect(Collectors.toList());
 
-        req.setAttribute("seats",        seats);
-        req.setAttribute("bases",        seatsDAO.getBases());
-        req.setAttribute("selectedBase", selectedBase);
-        req.setAttribute("officeImage",  (selectedBase != null && !selectedBase.isEmpty())
-                ? seatsDAO.getOfficeImage(selectedBase) : null);
+        req.setAttribute("seats",         seats);
+        req.setAttribute("bases",         seatsDAO.getBases());
+        req.setAttribute("selectedBase",  selectedBase);
+        req.setAttribute("selectedFloor", selectedFloor);
+        req.setAttribute("floors",        hasBase ? seatsDAO.getFloors(selectedBase) : null);
+        req.setAttribute("officeImage",   hasBase ? seatsDAO.getOfficeImage(selectedBase, selectedFloor) : null);
     }
 }

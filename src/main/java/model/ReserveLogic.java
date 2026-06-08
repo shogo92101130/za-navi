@@ -58,6 +58,12 @@ public class ReserveLogic implements Logic {
         req.setAttribute("selFloor", sFloor);
         req.setAttribute("selArea",  sArea);
 
+        // フロアマップ画像：拠点とフロアの両方が決まる「エリア選択」以降の画面で、
+        // 座席の場所（a,b,cどのエリアか）を確認できるように表示する（座席選択画面でも同じ画像を再掲）
+        if (("area".equals(stage) || "seat".equals(stage)) && sBase != null && sFloor != null) {
+            req.setAttribute("officeImage", seatsDAO.getOfficeImage(sBase, sFloor));
+        }
+
         // 今日の座席利用マップ（埋有率計算用）
         Map<Integer, String> todayUsage = resDAO.getSeatUsageForDate(today);
 

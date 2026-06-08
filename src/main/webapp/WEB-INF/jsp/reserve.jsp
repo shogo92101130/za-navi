@@ -15,6 +15,7 @@
   String selBase  = (String) request.getAttribute("selBase");
   String selFloor = (String) request.getAttribute("selFloor");
   String selArea  = (String) request.getAttribute("selArea");
+  String officeImage = (String) request.getAttribute("officeImage");
   String ctx      = request.getContextPath();
   String menuAction = Boolean.TRUE.equals(session.getAttribute("isAdmin")) ? "adminMenu" : "menu";
 
@@ -111,6 +112,15 @@
     <!-- ═══════════ エリアステージ ═══════════ -->
     <% } else if ("area".equals(stage)) { %>
       <p style="color:#757575; margin-bottom:16px;">エリアを選んでください。</p>
+
+      <!-- フロアマップ画像（どのエリアがどこにあるか確認できるように） -->
+      <% if (officeImage != null) { %>
+      <div style="margin-bottom:16px;">
+        <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selBase %><%= selFloor %>のフロアマップ"
+             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
+      </div>
+      <% } %>
+
       <div class="occ-grid">
       <%
         List<Map<String, Object>> items = (List<Map<String, Object>>) request.getAttribute("items");
@@ -192,10 +202,17 @@
         </div>
       </div>
 
-      <!-- ③ オフィスレイアウト画像（プレースホルダー） -->
+      <!-- ③ オフィスレイアウト画像（エリア選択画面と同じフロアマップを再掲し、座席の場所を確認できるように） -->
+      <% if (officeImage != null) { %>
+      <div style="margin-bottom:16px;">
+        <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selBase %><%= selFloor %>のフロアマップ"
+             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
+      </div>
+      <% } else { %>
       <div class="layout-placeholder">
         オフィスレイアウト画像<br>（images フォルダに画像を追加して差し替え）
       </div>
+      <% } %>
 
       <!-- ④ 座席ボタン（緑=空き、赤=使用中） -->
       <p style="font-size:13px; font-weight:700; margin-bottom:8px;">座席を選択してください</p>

@@ -194,10 +194,10 @@
           </div>
         </div>
 
-        <!-- 拠点を選ぶと、そのオフィスのフロアマップ画像を表示する -->
+        <!-- 拠点（とフロア）を選ぶと、該当のフロアマップ画像を表示する -->
         <%
           String officeImage = (selBase != null && !selBase.isEmpty())
-                  ? new SeatsDAO().getOfficeImage(selBase) : null;
+                  ? new SeatsDAO().getOfficeImage(selBase, selFloor) : null;
         %>
         <% if (officeImage != null) { %>
         <div style="margin-top:14px;">
