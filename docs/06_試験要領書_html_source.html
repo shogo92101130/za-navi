@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 13px;
+    color: #212121;
+    background: #fff;
+    padding: 36px 44px;
+    width: 794px;
+  }
+  /* ── 表紙ブロック ── */
+  .cover {
+    border: 2px solid #1565C0;
+    border-radius: 8px;
+    padding: 32px 36px;
+    margin-bottom: 36px;
+  }
+  .cover-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1565C0;
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+  .cover-sub {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+  }
+  .cover-meta { font-size: 12px; color: #666; line-height: 2; }
+  /* ── 見出し ── */
+  h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: #1565C0;
+    padding: 7px 14px;
+    margin: 28px 0 10px;
+    border-radius: 3px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1565C0;
+    border-left: 4px solid #1565C0;
+    padding-left: 8px;
+    margin: 18px 0 6px;
+  }
+  /* ── テーブル ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+  th {
+    background: #1565C0;
+    color: #fff;
+    padding: 6px 9px;
+    text-align: left;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  td {
+    padding: 5px 9px;
+    border: 1px solid #CFD8DC;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  tr:nth-child(even) td { background: #F5F5F5; }
+  /* ── ステータスバッジ ── */
+  .ok   { display:inline-block; background:#C8E6C9; color:#1B5E20; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; }
+  .ng   { display:inline-block; background:#FFCDD2; color:#B71C1C; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; }
+  .info { display:inline-block; background:#E3F2FD; color:#0D47A1; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; }
+  /* ── ノート ── */
+  .note {
+    background: #FFF8E1;
+    border-left: 4px solid #FBC02D;
+    padding: 7px 12px;
+    font-size: 12px;
+    margin: 8px 0 14px;
+    line-height: 1.6;
+  }
+  code {
+    background: #ECEFF1;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: "Consolas","Courier New",monospace;
+    font-size: 11px;
+    color: #C62828;
+  }
+  p { line-height: 1.7; margin-bottom: 6px; }
+  /* カテゴリヘッダ行 */
+  .cat-row td {
+    background: #E3F2FD !important;
+    font-weight: 700;
+    color: #0D47A1;
+    font-size: 12px;
+  }
+  /* ページ区切り用の余白 */
+  .page-break { margin-top: 32px; border-top: 2px dashed #BDBDBD; padding-top: 24px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ 表紙 ══════════════════ -->
+<div class="cover">
+  <div class="cover-title">座・Navi　試験要領書</div>
+  <div class="cover-sub">Za-Navi 座席予約・行先管理 Webアプリケーション</div>
+  <div class="cover-meta">
+    作成日：2026-06-09<br>
+    対象バージョン：DB接続版（zaseki1 DB / Tomcat 9 / Java 21）<br>
+    試験環境：http://localhost:8080/za-navi/<br>
+    管理者アカウント：userId=1001 / password=pass1001<br>
+    一般ユーザー例：userId=1002 / password=pass1002
+  </div>
+</div>
+
+<!-- ══════════════════ 1. 試験目的 ══════════════════ -->
+<h2>1. 試験目的</h2>
+<p>座・Naviの全機能（ログイン・行先登録・座席予約・代理予約・検索・マスタ管理）が仕様どおりに動作し、正常系・異常系ともにエラーなく応答することを確認する。また管理者権限によるアクセス制御が正しく機能していることも検証する。</p>
+
+<!-- ══════════════════ 2. 試験環境・前提 ══════════════════ -->
+<h2>2. 試験環境・前提条件</h2>
+<table>
+<thead><tr><th>項目</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>Webサーバー</td><td>Apache Tomcat 9（Eclipse WTP 管理）</td></tr>
+<tr><td>アプリURL</td><td><code>http://localhost:8080/za-navi/ControlServlet?action=login</code></td></tr>
+<tr><td>DB</td><td>MySQL 8.0　データベース名: <code>zaseki1</code></td></tr>
+<tr><td>初期データ</td><td>部署6件・座席180席（三田/芝浦/中野 × 1F/2F × A/B/C × 10席）・ユーザー200名</td></tr>
+<tr><td>管理者アカウント</td><td>userId: <code>1001</code>　password: <code>pass1001</code>（admin=1）</td></tr>
+<tr><td>一般アカウント例</td><td>userId: <code>1002</code>〜<code>1200</code>　password: <code>pass＋userId</code></td></tr>
+<tr><td>前提</td><td>Tomcat が起動しており、<code>/ControlServlet?action=login</code> が HTTP 200 を返すこと</td></tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ 3. テスト項目一覧 ══════════════════ -->
+<h2>3. テスト項目一覧（大分類）</h2>
+<table>
+<thead><tr><th>No.</th><th>カテゴリ</th><th>主な確認内容</th><th>件数</th></tr></thead>
+<tbody>
+<tr><td>T01</td><td>ログイン・ログアウト</td><td>正常ログイン、誤パスワード、未入力、ログアウト</td><td>5件</td></tr>
+<tr><td>T02</td><td>メニュー表示</td><td>一般メニュー・管理メニューの表示切り替え、本日の予約状況</td><td>4件</td></tr>
+<tr><td>T03</td><td>行先登録（出社・出張・在宅）</td><td>各種行先の登録、日付選択、重複登録エラー、キャンセル後の再登録</td><td>8件</td></tr>
+<tr><td>T04</td><td>座席予約（4段階ウィザード）</td><td>拠点→フロア→エリア→座席の選択フロー、フロアマップ画像表示</td><td>8件</td></tr>
+<tr><td>T05</td><td>予約確認・キャンセル</td><td>予約一覧表示、キャンセル操作、キャンセル後状態</td><td>4件</td></tr>
+<tr><td>T06</td><td>氏名検索</td><td>キーワード検索、部分一致、未入力、結果なし</td><td>4件</td></tr>
+<tr><td>T07</td><td>部門検索</td><td>部署プルダウン選択、ユーザーIDキーワード絞り込み、本日の状況表示</td><td>4件</td></tr>
+<tr><td>T08</td><td>管理者権限制御</td><td>一般ユーザーが管理機能URLを直接叩いた場合のリダイレクト</td><td>3件</td></tr>
+<tr><td>T09</td><td>代理予約（管理者）</td><td>対象ユーザー検索、座席選択、代理登録、フロアマップ表示</td><td>6件</td></tr>
+<tr><td>T10</td><td>座席利用状況（管理者）</td><td>拠点・フロア絞り込み、マップ画像切り替え、座席ステータス表示</td><td>4件</td></tr>
+<tr><td>T11</td><td>マスタ更新（管理者）</td><td>座席追加・更新・削除、拠点/フロア絞り込み、新規拠点のマップ表示</td><td>7件</td></tr>
+<tr><td>T12</td><td>フロアマップ画像（横断）</td><td>全画面でフロア選択時に対応画像が切り替わること</td><td>6件</td></tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ 4. 詳細テストケース ══════════════════ -->
+<h2>4. 詳細テストケース</h2>
+
+<!-- ─ T01 ログイン ─ -->
+<h3>T01　ログイン・ログアウト</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T01-01</td><td>管理者ログイン（正常）</td><td>userId=1001, password=pass1001 でログイン</td><td>管理者メニュー画面へ遷移</td></tr>
+<tr><td>T01-02</td><td>一般ユーザーログイン（正常）</td><td>userId=1002, password=pass1002 でログイン</td><td>一般メニュー画面へ遷移</td></tr>
+<tr><td>T01-03</td><td>パスワード誤り</td><td>userId=1002, password=wrong でログイン</td><td>「ユーザーIDまたはパスワードが正しくありません」エラー表示、ログインページ継続</td></tr>
+<tr><td>T01-04</td><td>未入力でログイン</td><td>userId・passwordを空欄のままログインボタン押下</td><td>エラー表示またはHTML5バリデーションでブロック</td></tr>
+<tr><td>T01-05</td><td>ログアウト</td><td>ログイン後、ログアウトボタン押下</td><td>ログアウト画面表示。再度ログインページへ戻る</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T02 メニュー ─ -->
+<h3>T02　メニュー表示</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T02-01</td><td>一般メニュー表示</td><td>一般ユーザー（1002）でログイン</td><td>「本日の予約状況」「同じ部署の出社状況」「機能メニュー」が表示。管理機能リンクなし</td></tr>
+<tr><td>T02-02</td><td>管理者メニュー表示</td><td>管理者（1001）でログイン</td><td>「管理者ビュー」「今後2週間の予約状況」「管理機能」ブロックが追加表示</td></tr>
+<tr><td>T02-03</td><td>本日の予約状況</td><td>出社予約済みのユーザーでログイン</td><td>予約内容（拠点・フロア・エリア・座席）が正しく表示</td></tr>
+<tr><td>T02-04</td><td>同じ部署の出社状況（一般）</td><td>「表示する」ボタン押下</td><td>同一部署のメンバー氏名・座席一覧が展開表示</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T03 行先登録 ─ -->
+<h3>T03　行先登録（出社 / 出張 / 在宅）</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T03-01</td><td>出社ボタン押下</td><td>行先登録画面で「出社する」ボタン押下</td><td>座席予約ウィザード（T04）へ遷移</td></tr>
+<tr><td>T03-02</td><td>出張登録（正常）</td><td>「出張」ボタン → 出張先入力 → 登録</td><td>出張先メモが保存され、完了メッセージ表示。メニューの本日予約に反映</td></tr>
+<tr><td>T03-03</td><td>在宅登録（正常）</td><td>「在宅」ボタン → メモ任意入力 → 登録</td><td>在宅として保存され、完了メッセージ表示。メニューの本日予約に反映</td></tr>
+<tr><td>T03-04</td><td>在宅登録 2人目（重複OK確認）</td><td>別ユーザーも同日に在宅登録</td><td>エラーなく登録完了（UNIQUE制約が seat_id=0 を許容）</td></tr>
+<tr><td>T03-05</td><td>同一日に2件目の登録（エラー）</td><td>出張登録済みの日付に再度行先登録を試みる</td><td>「すでに予約があります」等のエラーメッセージが表示</td></tr>
+<tr><td>T03-06</td><td>日付カレンダー表示</td><td>行先登録画面を開く</td><td>本日〜14日分の日付一覧が表示。既予約日は状態（出社/出張/在宅）が色分け表示</td></tr>
+<tr><td>T03-07</td><td>出張先メモ未入力</td><td>出張先入力画面でテキストを空のまま登録</td><td>エラー表示またはHTML5バリデーションでブロック</td></tr>
+<tr><td>T03-08</td><td>在宅メモ任意（空でもOK）</td><td>メモ空欄のまま在宅登録</td><td>正常に登録完了</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T04 座席予約 ─ -->
+<h3>T04　座席予約（4段階ウィザード）</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T04-01</td><td>拠点選択画面</td><td>行先登録→出社→座席予約へ遷移</td><td>三田/芝浦/中野の拠点ボタンが表示</td></tr>
+<tr><td>T04-02</td><td>フロア選択画面</td><td>拠点（例：三田）を選択</td><td>1F/2Fのフロアボタンが表示。ステージバーが「②フロア」アクティブ</td></tr>
+<tr><td>T04-03</td><td>エリア選択 + フロアマップ表示</td><td>フロア（例：1F）を選択</td><td>A/B/Cエリアボタン表示。該当フロアのマップ画像（office_mita_1F.png）が表示</td></tr>
+<tr><td>T04-04</td><td>座席選択画面</td><td>エリア（例：A）を選択</td><td>エリア内の座席一覧表示。使用中の席は別表示・予約不可</td></tr>
+<tr><td>T04-05</td><td>日付選択・座席確定</td><td>空き座席と日付を選択し「予約する」</td><td>予約完了画面（reserveOK.jsp）表示。DBに登録される</td></tr>
+<tr><td>T04-06</td><td>同席の二重予約（エラー）</td><td>別ユーザーが同じ座席・同日で予約</td><td>「予約できませんでした」（reserveNG.jsp）表示</td></tr>
+<tr><td>T04-07</td><td>フロアマップ 1F/2F の切り替え</td><td>三田1F → 三田2F と連続して試す</td><td>1Fと2Fで異なる画像ファイルが表示（office_mita_1F.png / office_mita_2F.png）</td></tr>
+<tr><td>T04-08</td><td>拠点切り替えで画像変化</td><td>三田1F → 芝浦1F → 中野1F と試す</td><td>拠点ごとに異なる色・レイアウトのマップ画像が表示</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T05 予約確認 ─ -->
+<h3>T05　予約確認・キャンセル</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T05-01</td><td>予約一覧表示</td><td>「予約確認」メニューを開く</td><td>自分の有効な予約が日付・拠点・座席情報付きで一覧表示</td></tr>
+<tr><td>T05-02</td><td>キャンセル操作</td><td>予約行の「キャンセル」ボタン押下 → 確認ダイアログ → OK</td><td>「予約をキャンセルしました」メッセージ。一覧から当該予約が消える</td></tr>
+<tr><td>T05-03</td><td>キャンセル後の座席開放確認</td><td>T05-02のキャンセル後、同席・同日に別ユーザーが予約</td><td>予約成功（UNIQUE制約がキャンセル済みを重複とみなさない）</td></tr>
+<tr><td>T05-04</td><td>予約なし状態</td><td>予約を持たないユーザーで確認画面を開く</td><td>「予約はありません」等のメッセージが表示</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T06 氏名検索 ─ -->
+<h3>T06　氏名検索</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T06-01</td><td>氏名キーワード検索（正常）</td><td>「田中」等で検索</td><td>ヒットするユーザーの氏名・部署・本日の状況が表示</td></tr>
+<tr><td>T06-02</td><td>部分一致検索</td><td>姓のみ（例:「佐藤」）で検索</td><td>「佐藤」を含む氏名のユーザーが一覧表示</td></tr>
+<tr><td>T06-03</td><td>該当なし</td><td>存在しない名前（例：「ＸＹＺ」）で検索</td><td>「該当者はいません」等のメッセージ表示</td></tr>
+<tr><td>T06-04</td><td>未入力検索</td><td>キーワード空欄のまま検索ボタン押下</td><td>全ユーザー一覧が表示、またはバリデーションエラー（仕様による）</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T07 部門検索 ─ -->
+<h3>T07　部門検索</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T07-01</td><td>部署プルダウンで検索</td><td>部署一覧から「基幹システム1部」を選択して検索</td><td>所属ユーザー一覧と本日の出社/出張/在宅状況が表示</td></tr>
+<tr><td>T07-02</td><td>ユーザーIDキーワード絞り込み</td><td>部署選択後、userIdキーワード入力で絞り込み</td><td>対象ユーザーのみに絞られた結果が表示</td></tr>
+<tr><td>T07-03</td><td>全部署検索</td><td>部署を選択せずに検索</td><td>全部署の一覧または部署未選択の案内が表示</td></tr>
+<tr><td>T07-04</td><td>本日出社メンバーの座席表示</td><td>出社予約済みのメンバーが含まれる部署を検索</td><td>出社ユーザーの座席（拠点・フロア・エリア・席名）が表示</td></tr>
+</tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ─ T08 権限制御 ─ -->
+<h3>T08　管理者権限制御</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T08-01</td><td>未ログインでのアクセス</td><td>ブラウザから直接 <code>?action=menu</code> にアクセス</td><td>ログイン画面へリダイレクト</td></tr>
+<tr><td>T08-02</td><td>一般ユーザーが管理機能へアクセス</td><td>一般ユーザーでログイン後、<code>?action=adminMenu</code> を直接入力</td><td>ログイン画面または「権限がありません」へリダイレクト</td></tr>
+<tr><td>T08-03</td><td>一般ユーザーがマスタ更新へアクセス</td><td>一般ユーザーでログイン後、<code>?action=masterUpdate</code> を直接入力</td><td>ログイン画面または「権限がありません」へリダイレクト</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T09 代理予約 ─ -->
+<h3>T09　代理予約（管理者機能）</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T09-01</td><td>代理予約画面表示</td><td>管理者メニュー → 代理予約</td><td>対象ユーザー検索フォームと座席選択エリアが表示</td></tr>
+<tr><td>T09-02</td><td>氏名・部署でユーザー検索</td><td>氏名キーワードまたは部署で検索</td><td>対象ユーザー一覧が表示</td></tr>
+<tr><td>T09-03</td><td>拠点選択でフロア一覧更新</td><td>拠点ドロップダウンを変更</td><td>フロアドロップダウンが対応する拠点のフロアに更新</td></tr>
+<tr><td>T09-04</td><td>フロア選択でフロアマップ表示</td><td>拠点 + フロアを選択</td><td>選択したフロアのマップ画像に切り替わる（例: 三田2F → office_mita_2F.png）</td></tr>
+<tr><td>T09-05</td><td>代理予約実行（正常）</td><td>対象ユーザー・座席・日付を選択して登録</td><td>代理予約が完了。対象ユーザーの予約確認画面に反映</td></tr>
+<tr><td>T09-06</td><td>代理予約（既予約ユーザーへの登録）</td><td>同日にすでに予約があるユーザーへ代理予約</td><td>重複エラーメッセージ表示</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T10 座席利用状況 ─ -->
+<h3>T10　座席利用状況（管理者機能）</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T10-01</td><td>初期表示</td><td>管理者メニュー → 座席利用状況</td><td>拠点・フロアフィルターフォームと座席マップが表示</td></tr>
+<tr><td>T10-02</td><td>拠点+フロアで絞り込み</td><td>拠点「芝浦」、フロア「2F」を選択して検索</td><td>芝浦2Fの座席のみ表示。フロアマップ（office_shibaura_2F.png）が表示</td></tr>
+<tr><td>T10-03</td><td>予約済み座席の視覚表示</td><td>予約が入っている日付でフィルター</td><td>使用中の座席がハイライト・使用者名が表示</td></tr>
+<tr><td>T10-04</td><td>フロア切り替えで画像変化</td><td>同じ拠点で1Fと2Fを切り替え</td><td>フロアごとに異なるマップ画像が表示</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T11 マスタ更新 ─ -->
+<h3>T11　マスタ更新（管理者機能）</h3>
+<table>
+<thead><tr><th>ID</th><th>テスト内容</th><th>操作手順</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T11-01</td><td>座席一覧の絞り込み表示</td><td>拠点・フロアドロップダウンで絞り込み</td><td>対象フロアの座席のみ一覧表示</td></tr>
+<tr><td>T11-02</td><td>座席追加（正常）</td><td>フォームに拠点・フロア・エリア・座席名を入力して追加</td><td>「座席を追加しました」メッセージ。一覧に新しい行が追加</td></tr>
+<tr><td>T11-03</td><td>座席更新（正常）</td><td>既存座席の「更新」リンク → 情報変更 → 保存</td><td>「座席IDを更新しました」メッセージ。変更内容が反映</td></tr>
+<tr><td>T11-04</td><td>座席削除（正常）</td><td>既存座席の「削除」ボタン → 確認 → 実行</td><td>「座席IDを削除しました」メッセージ。一覧から行が消える</td></tr>
+<tr><td>T11-05</td><td>新規拠点追加後のマップ表示</td><td>既存にない拠点名（例：「渋谷」）の座席を追加、拠点絞り込みでそのフロアを選択</td><td>フロア選択後「フロアマップ画像はまだ登録されていません（キー例: 渋谷_1F）」ヒント表示</td></tr>
+<tr><td>T11-06</td><td>フロア絞り込みでフロアマップ更新</td><td>既存拠点（三田）のフロアを切り替え</td><td>フロア変更のたびに対応するマップ画像が表示</td></tr>
+<tr><td>T11-07</td><td>フロアドロップダウン連動</td><td>拠点を選択 → フロアドロップダウンが有効化</td><td>拠点を選ぶとフロア一覧が更新される。拠点未選択時はフロア選択が無効（disabled）</td></tr>
+</tbody>
+</table>
+
+<!-- ─ T12 フロアマップ横断 ─ -->
+<h3>T12　フロアマップ画像（全画面横断確認）</h3>
+<table>
+<thead><tr><th>ID</th><th>確認画面</th><th>テスト内容</th><th>期待結果</th></tr></thead>
+<tbody>
+<tr><td>T12-01</td><td>座席予約（エリア選択）</td><td>三田1F選択</td><td><code>office_mita_1F.png</code> が表示</td></tr>
+<tr><td>T12-02</td><td>座席予約（エリア選択）</td><td>三田2F選択</td><td><code>office_mita_2F.png</code> が表示（1Fと異なるレイアウト）</td></tr>
+<tr><td>T12-03</td><td>代理予約</td><td>芝浦1F/2Fを切り替え</td><td>それぞれ <code>office_shibaura_1F.png</code> / <code>office_shibaura_2F.png</code> が表示</td></tr>
+<tr><td>T12-04</td><td>座席利用状況</td><td>中野1F/2Fを切り替え</td><td>それぞれ <code>office_nakano_1F.png</code> / <code>office_nakano_2F.png</code> が表示</td></tr>
+<tr><td>T12-05</td><td>マスタ更新</td><td>三田・芝浦・中野各フロアを選択</td><td>全6パターン（3拠点×2フロア）で対応画像が表示</td></tr>
+<tr><td>T12-06</td><td>フロア未選択（フォールバック）</td><td>代理予約・座席利用状況で拠点のみ選択</td><td>拠点レベルのフォールバック画像（<code>office_nakano.png</code> 等）が表示</td></tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ 5. 合否基準 ══════════════════ -->
+<h2>5. 合否基準</h2>
+<table>
+<thead><tr><th>区分</th><th>基準</th></tr></thead>
+<tbody>
+<tr><td><span class="ok">合格</span></td><td>全テストケースで期待結果と一致。または軽微なUI差異のみで機能上の問題なし</td></tr>
+<tr><td><span class="ng">不合格</span></td><td>エラーページ（500系）、機能が動作しない、データが正しく保存・表示されない</td></tr>
+<tr><td><span class="info">確認要</span></td><td>仕様の解釈が曖昧な挙動。再現性不明のエラー。次バージョンで対応予定の既知事項</td></tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ 6. 既知事項・注意点 ══════════════════ -->
+<h2>6. 既知事項・注意点</h2>
+<div class="note">
+<strong>DBUtil.java のパスワード：</strong>リポジトリ上は <code>your_password</code> プレースホルダーになっています。実際にローカルで動かす際は eclipse-workspace 側の DBUtil.java を編集し、自環境の MySQL root パスワードを設定してください。
+</div>
+<div class="note">
+<strong>フロアマップ画像ファイル：</strong>新しい拠点を追加した場合、画像ファイル（例: <code>office_渋谷_1F.png</code>）を <code>webapp/images/</code> に追加し、さらに <code>SeatsDAO.OFFICE_IMAGES</code>（SeatsDAO.java 29〜45行目）にキーと画像ファイル名を登録する必要があります。
+</div>
+<div class="note">
+<strong>T08 権限チェック：</strong>現在の実装は <code>ControlServlet</code> の管理者アクション判定（<code>isAdmin</code> フラグ）でリダイレクトします。直接URLアクセス時にログイン済み・非管理者の場合は login 画面へリダイレクトされる設計です。
+</div>
+
+</body>
+</html>
