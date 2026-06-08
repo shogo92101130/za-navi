@@ -6,7 +6,23 @@
 -- 文字化け・誤読箇所は前後の整合性（部署コードが D001〜D006 を
 -- 6件ずつ循環している点、パスワードが pass+ユーザーIDの規則になっている点など）
 -- から妥当な値に補完しています。
+--
+-- ▼実行方法
+-- このファイルをそのまま mysql クライアントに流し込めば、
+-- 「データベース作成 → テーブル作成 → 初期データ投入」までが一度に完了します。
+--   例: mysql -u root -p < za_navi_schema.sql
+-- 文字化けする場合は、先に文字コードを合わせてから実行してください。
+--   例: mysql -u root -p --default-character-set=utf8mb4 < za_navi_schema.sql
 -- =========================================================
+
+-- 接続文字コードをUTF-8に固定（Windowsのmysqlクライアントがcp932扱いになり
+-- 日本語INSERTが文字化け・エラーになるのを防ぐため）
+SET NAMES utf8mb4;
+
+CREATE DATABASE IF NOT EXISTS zaseki1
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_unicode_ci;
+USE zaseki1;
 
 DROP TABLE IF EXISTS reservations;
 DROP TABLE IF EXISTS seats;
@@ -61,8 +77,8 @@ CREATE TABLE reservations (
         FOREIGN KEY (user_id) REFERENCES users (user_id),
     CONSTRAINT fk_reservations_register_users
         FOREIGN KEY (register_id) REFERENCES users (user_id),
-    CONSTRAINT fk_reservations_seats
-        FOREIGN KEY (seat_id) REFERENCES seats (seat_id),
+    -- seat_id は「座席なし（在宅・出張）」を表す 0 を許容する設計のため、
+    -- seats テーブルへの外部キー制約は付けない（0は seats に存在せず制約違反になってしまうため）。
     CONSTRAINT uq_reservations_seat_active
         UNIQUE (reserve_date, seat_active_key),
     CONSTRAINT uq_reservations_user_active

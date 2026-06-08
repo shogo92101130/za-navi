@@ -173,8 +173,18 @@ public class ReserveLogic implements Logic {
         }
         int seatId = Integer.parseInt(seatIdStr);
 
-        // 同一日・同一席に既存予約がないか確認
         ReservationsDAO resDAO = new ReservationsDAO();
+
+        // 同じ日にすでに有効な予約（出社・在宅・出張のいずれか）を持っていないか確認
+        // （DB側のUNIQUE制約 uq_reservations_user_active が1人1日1件に制限しているため、
+        //   ここでチェックせずINSERTすると制約違反の生エラーがそのまま「システムエラー」になってしまう）
+        if (resDAO.findActiveByUserAndDate(userId, date) != null) {
+            req.setAttribute("errorMsg", "その日はすでに予約（出社・在宅・出張のいずれか）が登録されています。"
+                    + "先に「予約確認」から既存の予約を取り消してください。");
+            return "/WEB-INF/jsp/reserveNG.jsp";
+        }
+
+        // 同一日・同一席に既存予約がないか確認
         Map<Integer, String> usage = resDAO.getSeatUsageForDate(date);
         if (usage.containsKey(seatId)) {
             req.setAttribute("errorMsg", "選択した座席はすでに予約済みです。");

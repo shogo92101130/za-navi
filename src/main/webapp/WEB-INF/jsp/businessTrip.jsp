@@ -1,4 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="java.util.List" %>
+<%@ page import="java.util.Map" %>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -13,8 +15,26 @@
   <div class="card" style="max-width:500px; margin:0 auto;">
     <h2>出張先を入力してください</h2>
 
+    <%
+      List<String> dates = (List<String>) request.getAttribute("dates");
+      Map<String, String> dateStatusLabels = (Map<String, String>) request.getAttribute("dateStatusLabels");
+    %>
     <form action="<%= request.getContextPath() %>/ControlServlet" method="post">
       <input type="hidden" name="action" value="doBusinessTrip">
+
+      <div class="form-group">
+        <label>対象日</label>
+        <select name="date" style="width:100%;">
+          <% if (dates != null) for (String d : dates) {
+               String status = dateStatusLabels != null ? dateStatusLabels.get(d) : null;
+          %>
+            <option value="<%= d %>"><%= d %><%= status != null ? "　― " + status : "" %></option>
+          <% } %>
+        </select>
+        <p style="color:#757575; font-size:0.85em; margin-top:4px;">
+          「予定あり」の日は、すでに出社・在宅・出張のいずれかの予定が登録されています（重複登録するとエラーになります）。
+        </p>
+      </div>
 
       <div class="form-group">
         <label>出張先</label>

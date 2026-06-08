@@ -60,24 +60,45 @@
   %>
   <% if (request.getAttribute("deptMemberCount") != null) { %>
   <div class="card">
-    <h2>同じ部署の本日の出社状況</h2>
-    <div class="summary-row">
-      <span class="badge badge-green">本日出社：<%= request.getAttribute("deptOfficeCount") %> 名</span>
-      <span class="badge badge-gray">部署人数：<%= request.getAttribute("deptMemberCount") %> 名</span>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="margin:0;">同じ部署の本日の出社状況</h2>
+      <button type="button" id="deptSeatToggleBtn" class="btn btn-secondary" style="font-size:13px; padding:6px 14px;"
+              onclick="toggleDeptSeatList()">▶ 表示する</button>
     </div>
-    <% if (deptSeatList != null && !deptSeatList.isEmpty()) { %>
-    <div class="summary-row" style="margin-top:10px; gap:8px;">
-      <% for (Map<String, Object> row : deptSeatList) {
-           Seat seat = (Seat) row.get("seat");
-           String seatLabel = seat != null
-               ? seat.getFName() + " " + seat.getAreaName() + " " + seat.getSeatName()
-               : "座席未定";
-      %>
-      <span class="badge badge-gray"><%= row.get("name") %>　<span style="color:#00695C;">(<%= seatLabel %>)</span></span>
+    <p id="deptSeatHint" style="color:#757575; font-size:13px; margin:8px 0 0;">
+      「表示する」を押すと、同じ部署のメンバーが本日どこにいるか（出社人数・座席など）を確認できます。
+    </p>
+    <div id="deptSeatListBody" style="display:none; margin-top:10px;">
+      <div class="summary-row">
+        <span class="badge badge-green">本日出社：<%= request.getAttribute("deptOfficeCount") %> 名</span>
+        <span class="badge badge-gray">部署人数：<%= request.getAttribute("deptMemberCount") %> 名</span>
+      </div>
+      <% if (deptSeatList != null && !deptSeatList.isEmpty()) { %>
+      <div class="summary-row" style="margin-top:10px; gap:8px;">
+        <% for (Map<String, Object> row : deptSeatList) {
+             Seat seat = (Seat) row.get("seat");
+             String seatLabel = seat != null
+                 ? seat.getFName() + " " + seat.getAreaName() + " " + seat.getSeatName()
+                 : "座席未定";
+        %>
+        <span class="badge badge-gray"><%= row.get("name") %>　<span style="color:#00695C;">(<%= seatLabel %>)</span></span>
+        <% } %>
+      </div>
       <% } %>
     </div>
-    <% } %>
   </div>
+  <script>
+    // 管理者メニューを開いた直後は隠しておき、必要なときだけボタンで開けるようにする
+    function toggleDeptSeatList() {
+      var body = document.getElementById('deptSeatListBody');
+      var hint = document.getElementById('deptSeatHint');
+      var btn  = document.getElementById('deptSeatToggleBtn');
+      var hidden = body.style.display === 'none';
+      body.style.display = hidden ? '' : 'none';
+      if (hint) hint.style.display = hidden ? 'none' : '';
+      btn.textContent = hidden ? '▼ 隠す' : '▶ 表示する';
+    }
+  </script>
   <% } %>
 
   <!-- 2週間分の予約状況（管理者のみ）：行をクリックすると氏名・座席の詳細が開く -->
@@ -103,16 +124,23 @@
         <% if (people == null || people.isEmpty()) { %>
         <p style="color:#9E9E9E; font-size:13px; margin:0;">座席が確定している予約はまだありません。</p>
         <% } else { %>
-        <div class="summary-row" style="gap:8px;">
+        <table class="table" style="margin-top:4px;">
+          <thead><tr><th>氏名</th><th>部署</th><th>座席</th></tr></thead>
+          <tbody>
           <% for (Map<String, Object> p : people) {
                Seat seat = (Seat) p.get("seat");
                String seatLabel = seat != null
                    ? seat.getBaseName() + " " + seat.getFName() + " " + seat.getAreaName() + " " + seat.getSeatName()
                    : "─";
           %>
-          <span class="badge badge-gray"><%= p.get("name") %>　<span style="color:#00695C;">(<%= seatLabel %>)</span></span>
+            <tr>
+              <td><%= p.get("name") %></td>
+              <td><%= p.get("bName") %></td>
+              <td><%= seatLabel %></td>
+            </tr>
           <% } %>
-        </div>
+          </tbody>
+        </table>
         <% } %>
       </div>
     </details>
@@ -126,9 +154,6 @@
     <div class="menu-grid">
       <a href="<%= request.getContextPath() %>/ControlServlet?action=locationRegist" class="menu-btn">
         <img class="ico-lg" src="<%= request.getContextPath() %>/images/ico_location.png" alt="行先登録">行先登録
-      </a>
-      <a href="<%= request.getContextPath() %>/ControlServlet?action=reserve" class="menu-btn">
-        <img class="ico-lg" src="<%= request.getContextPath() %>/images/ico_seat.png" alt="座席予約">座席予約
       </a>
       <a href="<%= request.getContextPath() %>/ControlServlet?action=reserveConfirm" class="menu-btn">
         <img class="ico-lg" src="<%= request.getContextPath() %>/images/ico_confirm.png" alt="予約確認">予約確認

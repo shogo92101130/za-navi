@@ -99,6 +99,37 @@ public class AccountsDAO {
         return list;
     }
 
+    /**
+     * 部署（bId）と社員ID（部分一致）の両方、またはどちらか一方で社員を絞り込む。
+     * 条件が空のものは無視する（両方空ならWHERE 1=1のみ＝全件）。
+     */
+    public List<Account> search(String bId, String userIdKeyword) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT user_id, password, b_id, name, admin FROM users WHERE 1=1");
+        List<String> params = new ArrayList<>();
+        if (bId != null && !bId.isEmpty()) {
+            sql.append(" AND b_id = ?");
+            params.add(bId);
+        }
+        if (userIdKeyword != null && !userIdKeyword.isEmpty()) {
+            sql.append(" AND CAST(user_id AS CHAR) LIKE ?");
+            params.add("%" + userIdKeyword + "%");
+        }
+        sql.append(" ORDER BY user_id");
+
+        List<Account> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) ps.setString(i + 1, params.get(i));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(map(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("社員検索に失敗しました", e);
+        }
+        return list;
+    }
+
     public List<Account> findByBId(String bId) {
         String sql = "SELECT user_id, password, b_id, name, admin FROM users WHERE b_id = ? ORDER BY user_id";
         List<Account> list = new ArrayList<>();

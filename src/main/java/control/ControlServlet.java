@@ -40,6 +40,12 @@ public class ControlServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
         res.setCharacterEncoding("UTF-8");
 
+        // 予約状況などセッション依存の動的画面をブラウザにキャッシュさせない
+        // （キャッシュされた古いページが表示され、「予約したのに反映されない」ように見えるのを防ぐ）
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setDateHeader("Expires", 0);
+
         String action = req.getParameter("action");
         if (action == null || action.isEmpty()) action = "login";
 
@@ -192,6 +198,15 @@ public class ControlServlet extends HttpServlet {
         // 管理者向け：今日から2週間分の予約状況サマリ（人数だけでなく、誰がどの席かも見られるように）
         if (isAdmin) {
             SeatsDAO seatDAO = new SeatsDAO();
+            dao.LocationsDAO locDAO2 = new dao.LocationsDAO();
+
+            // 部署一覧は最初に1回だけ取得して bId→bName のマップを作っておく
+            // （1人ずつ部署名を問い合わせると、14日分×人数のDB接続が発生し重くなるため）
+            Map<String, String> deptNameMap = new HashMap<>();
+            for (entity.Location loc : locDAO2.findAll()) {
+                deptNameMap.put(loc.getBId(), loc.getBName());
+            }
+
             List<Map<String, Object>> twoWeekSummary = new ArrayList<>();
             for (int i = 0; i < 14; i++) {
                 String date = LocalDate.now().plusDays(i).toString();
@@ -199,7 +214,7 @@ public class ControlServlet extends HttpServlet {
                 long officeNum = dayRes.stream().filter(r -> "出社".equals(r.getGyosaki())).count();
                 long seatNum   = dayRes.stream().filter(r -> r.getSeatId() > 0).count();
 
-                // 出社・座席が確定している人の「氏名＋座席」明細（折りたたみ表示用）
+                // 出社・座席が確定している人の「氏名＋部署＋座席」明細（折りたたみ表示用）
                 List<Map<String, Object>> people = new ArrayList<>();
                 for (Reservation r : dayRes) {
                     if (!"出社".equals(r.getGyosaki()) || r.getSeatId() <= 0) continue;
@@ -207,6 +222,7 @@ public class ControlServlet extends HttpServlet {
                     Seat seat = seatDAO.findById(r.getSeatId());
                     Map<String, Object> p = new HashMap<>();
                     p.put("name", acc != null ? acc.getName() : r.getUserId());
+                    p.put("bName", acc != null ? deptNameMap.getOrDefault(acc.getBId(), "不明") : "");
                     p.put("seat", seat);
                     people.add(p);
                 }

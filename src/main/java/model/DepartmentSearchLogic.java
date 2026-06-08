@@ -13,12 +13,12 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
 /**
- * 部門検索（指定した部署のメンバー一覧と、各メンバーの本日の出社状況を表示する）。
+ * 部門検索（指定した部署・社員IDに合致するメンバー一覧と、各メンバーの本日の出社状況を表示する）。
  *
  * 流れ：
  *   1) 画面表示時：部署の一覧（プルダウン用）を取得して渡す
- *   2) 部署が選択されたとき（bIdパラメータあり）：
- *      その部署のメンバーを取得し、1人ずつ「本日の予約」を調べて
+ *   2) 部署（bId）・社員ID（userIdKeyword）のどちらか、または両方が指定されたとき：
+ *      条件に合うメンバーを取得し、1人ずつ「本日の予約」を調べて
  *      「氏名」「本日の行先（出社/在宅/出張/未登録）」「座席（出社の場合）」をまとめてJSPに渡す
  *
  * 複数のDAO（Accounts → Reservations → Seats）を組み合わせて1画面分のデータを作る、
@@ -33,13 +33,17 @@ public class DepartmentSearchLogic implements Logic {
         req.setAttribute("departments", departments); // 検索フォームの部署プルダウン用
 
         String bId = req.getParameter("bId");
-        if (bId != null && !bId.isEmpty()) {
+        String userIdKeyword = req.getParameter("userIdKeyword");
+        boolean hasBId = bId != null && !bId.isEmpty();
+        boolean hasUserIdKeyword = userIdKeyword != null && !userIdKeyword.isEmpty();
+
+        if (hasBId || hasUserIdKeyword) {
             AccountsDAO accDAO = new AccountsDAO();
             ReservationsDAO resDAO = new ReservationsDAO();
             SeatsDAO seatDAO = new SeatsDAO();
 
-            // 選んだ部署に所属するメンバー全員分を、1人ずつ「本日の状況」付きで組み立てる
-            List<Account> members = accDAO.findByBId(bId);
+            // 条件に合うメンバー全員分を、1人ずつ「本日の状況」付きで組み立てる
+            List<Account> members = accDAO.search(bId, userIdKeyword);
             List<Map<String, Object>> rows = new ArrayList<>();
             for (Account a : members) {
                 Map<String, Object> row = new HashMap<>();
@@ -60,8 +64,20 @@ public class DepartmentSearchLogic implements Logic {
                 row.put("seat", seat);
                 rows.add(row);
             }
+
+            // 検索条件に応じた結果見出し（部署名・社員IDのどちらを条件に使ったか分かるように）
+            String resultLabel;
+            if (hasBId && hasUserIdKeyword) {
+                resultLabel = "「" + locDAO.getBNameById(bId) + "」かつ社員ID「" + userIdKeyword + "」に一致する社員";
+            } else if (hasBId) {
+                resultLabel = "「" + locDAO.getBNameById(bId) + "」のメンバー";
+            } else {
+                resultLabel = "社員ID「" + userIdKeyword + "」に一致する社員";
+            }
+
             req.setAttribute("selectedBId", bId);
-            req.setAttribute("selectedBName", locDAO.getBNameById(bId));
+            req.setAttribute("selectedUserIdKeyword", userIdKeyword);
+            req.setAttribute("resultLabel", resultLabel);
             req.setAttribute("results", rows);
         }
         return "/WEB-INF/jsp/departmentSearch.jsp";

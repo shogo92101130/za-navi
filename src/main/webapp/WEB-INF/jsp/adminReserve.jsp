@@ -61,6 +61,14 @@
       <%
         @SuppressWarnings("unchecked")
         List<String> deptNames = (List<String>) request.getAttribute("deptNames");
+        // 「対象社員を選択してください」などのエラーで画面に戻ってきたときも、
+        // 検索条件を入力し直さずに済むよう、直前に入力されていた値を復元する
+        String searchDeptIndividual = (String) request.getAttribute("searchDeptIndividual");
+        String searchNameIndividual = (String) request.getAttribute("searchNameIndividual");
+        String searchDeptMeeting    = (String) request.getAttribute("searchDeptMeeting");
+        String searchNameMeeting    = (String) request.getAttribute("searchNameMeeting");
+        String selMode = (String) request.getAttribute("selMode");
+        if (selMode == null || selMode.isEmpty()) selMode = "individual";
       %>
 
       <!-- ② 対象社員を検索して追加（modeによって切り替え） -->
@@ -69,16 +77,17 @@
         <div class="filter-row">
           <div class="form-group">
             <label>部署で絞り込み（任意）</label>
-            <select id="searchDeptIndividual">
+            <select id="searchDeptIndividual" name="searchDeptIndividual">
               <option value="">すべての部署</option>
               <% if (deptNames != null) for (String d : deptNames) { %>
-              <option value="<%= d %>"><%= d %></option>
+              <option value="<%= d %>" <%= d.equals(searchDeptIndividual) ? "selected" : "" %>><%= d %></option>
               <% } %>
             </select>
           </div>
           <div class="form-group">
             <label>氏名で検索（任意）</label>
-            <input type="text" id="searchNameIndividual" placeholder="例: 山田">
+            <input type="text" id="searchNameIndividual" name="searchNameIndividual" placeholder="例: 山田"
+                   value="<%= searchNameIndividual != null ? searchNameIndividual : "" %>">
           </div>
           <div>
             <button type="button" class="btn btn-outline" onclick="searchAccounts('individual')">検索</button>
@@ -100,16 +109,17 @@
         <div class="filter-row">
           <div class="form-group">
             <label>部署で絞り込み（任意）</label>
-            <select id="searchDeptMeeting">
+            <select id="searchDeptMeeting" name="searchDeptMeeting">
               <option value="">すべての部署</option>
               <% if (deptNames != null) for (String d : deptNames) { %>
-              <option value="<%= d %>"><%= d %></option>
+              <option value="<%= d %>" <%= d.equals(searchDeptMeeting) ? "selected" : "" %>><%= d %></option>
               <% } %>
             </select>
           </div>
           <div class="form-group">
             <label>氏名で検索（任意）</label>
-            <input type="text" id="searchNameMeeting" placeholder="例: 佐藤">
+            <input type="text" id="searchNameMeeting" name="searchNameMeeting" placeholder="例: 佐藤"
+                   value="<%= searchNameMeeting != null ? searchNameMeeting : "" %>">
           </div>
           <div>
             <button type="button" class="btn btn-outline" onclick="searchAccounts('meeting')">検索</button>
@@ -395,7 +405,18 @@ function setMode(mode) {
     if (btn) { btn.classList.remove('selected'); btn.classList.add('available'); }
   });
 }
-setMode('individual'); // 初期表示
+setMode('<%= selMode %>'); // 初期表示（エラーで戻ってきた場合は直前のモードを維持）
+
+// エラーで画面に戻ってきたとき、検索条件が残っていれば検索結果も出し直しておく
+// （せっかく入力した部署・氏名が消えて、毎回検索し直す手間になるのを防ぐため）
+<% if ((searchDeptIndividual != null && !searchDeptIndividual.isEmpty())
+        || (searchNameIndividual != null && !searchNameIndividual.isEmpty())) { %>
+searchAccounts('individual');
+<% } %>
+<% if ((searchDeptMeeting != null && !searchDeptMeeting.isEmpty())
+        || (searchNameMeeting != null && !searchNameMeeting.isEmpty())) { %>
+searchAccounts('meeting');
+<% } %>
 
 function toggleSeat(cb) {
   var modeVal = document.getElementById('modeInput').value;

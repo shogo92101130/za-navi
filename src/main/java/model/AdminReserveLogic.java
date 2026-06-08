@@ -5,6 +5,7 @@ import dao.LocationsDAO;
 import dao.ReservationsDAO;
 import dao.SeatsDAO;
 import entity.Account;
+import entity.Location;
 import entity.Reservation;
 import entity.Seat;
 import javax.servlet.http.HttpServletRequest;
@@ -12,7 +13,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class AdminReserveLogic implements Logic {
 
@@ -31,19 +31,30 @@ public class AdminReserveLogic implements Logic {
         AccountsDAO accDAO = new AccountsDAO();
         LocationsDAO locDAO = new LocationsDAO();
 
+        // 部署一覧は最初に1回だけ取得して bId→bName のマップを作っておく
+        // （社員1人ごとに部署名をDB問い合わせすると、社員数×2回のDB接続が発生し、
+        // 　ページ表示が遅くなったり、接続過多でフロア一覧などの取得が失敗することがあったため）
+        List<Location> departments = locDAO.findAll();
+        Map<String, String> deptNameMap = new HashMap<>();
+        List<String> deptNames = new ArrayList<>();
+        for (Location loc : departments) {
+            deptNameMap.put(loc.getBId(), loc.getBName());
+            deptNames.add(loc.getBName());
+        }
+
         // 「○○部署の○○」形式で検索・表示できるように、社員一覧に部署名を付与
         List<Map<String, Object>> accountRows = new ArrayList<>();
         for (Account a : accDAO.findAll()) {
+            String bName = deptNameMap.getOrDefault(a.getBId(), "不明");
             Map<String, Object> row = new HashMap<>();
             row.put("userId", a.getUserId());
             row.put("name",   a.getName());
-            row.put("bName",  locDAO.getBNameById(a.getBId()));
-            row.put("label",  locDAO.getBNameById(a.getBId()) + "の" + a.getName());
+            row.put("bName",  bName);
+            row.put("label",  bName + "の" + a.getName());
             accountRows.add(row);
         }
         req.setAttribute("accountRows", accountRows);
-        req.setAttribute("deptNames", locDAO.findAll().stream()
-                .map(loc -> loc.getBName()).collect(Collectors.toList()));
+        req.setAttribute("deptNames", deptNames);
         req.setAttribute("bases",    seatsDAO.getBases());
 
         // パラメータ引き継ぎ（段階選択用）
@@ -51,6 +62,14 @@ public class AdminReserveLogic implements Logic {
         String floor = req.getParameter("floor");
         String area  = req.getParameter("area");
         String date  = req.getParameter("date");
+
+        // 「対象社員を選択してください」等のエラーで画面に戻ってきたときも、
+        // 入力済みの検索条件（部署・氏名）やモードが消えてしまわないように引き継ぐ
+        req.setAttribute("searchDeptIndividual", req.getParameter("searchDeptIndividual"));
+        req.setAttribute("searchNameIndividual", req.getParameter("searchNameIndividual"));
+        req.setAttribute("searchDeptMeeting",    req.getParameter("searchDeptMeeting"));
+        req.setAttribute("searchNameMeeting",    req.getParameter("searchNameMeeting"));
+        req.setAttribute("selMode", req.getParameter("mode"));
 
         if (base != null && !base.isEmpty()) {
             req.setAttribute("selBase",  base);
@@ -77,7 +96,7 @@ public class AdminReserveLogic implements Logic {
             for (Map.Entry<Integer, String> e : usage.entrySet()) {
                 Account acc = accDAO.findById(e.getValue());
                 seatUserNameMap.put(e.getKey(), acc != null ? acc.getName() : e.getValue());
-                seatUserDeptMap.put(e.getKey(), acc != null ? locDAO.getBNameById(acc.getBId()) : "");
+                seatUserDeptMap.put(e.getKey(), acc != null ? deptNameMap.getOrDefault(acc.getBId(), "不明") : "");
             }
 
             req.setAttribute("areaSeats",  seats);

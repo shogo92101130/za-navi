@@ -1,6 +1,7 @@
 package dao;
 
 import entity.Reservation;
+import java.sql.Date;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.*;
@@ -75,6 +76,26 @@ public class ReservationsDAO {
             throw new RuntimeException("指定日の予約の取得に失敗しました", e);
         }
         return list;
+    }
+
+    /**
+     * 指定ユーザーが指定日に持っている有効な（取消されていない）予約を返す（なければnull）。
+     * 1人が同じ日に複数の有効な予約を持てない（DB側のUNIQUE制約 uq_reservations_user_active）ため、
+     * 登録前にここでチェックして、制約違反の生エラーではなく分かりやすいメッセージを出す。
+     */
+    public Reservation findActiveByUserAndDate(String userId, String date) {
+        String sql = SELECT_COLUMNS + "WHERE user_id = ? AND reserve_date = ? AND cancel_flag = 0";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, Integer.parseInt(userId));
+            ps.setDate(2, Date.valueOf(LocalDate.parse(date)));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return map(rs);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("予約状況の確認に失敗しました", e);
+        }
+        return null;
     }
 
     /**
