@@ -1,0 +1,22 @@
+<%@ page pageEncoding="UTF-8" %>
+<%-- 一般ユーザー用ヘッダー（常にteal系の配色のまま。管理者がここに来た場合も「一般ユーザーとして見ている」と
+     分かるように、わざと配色を切り替えない。管理者用の配色変更は headerAdmin.jspf 側だけで行う） --%>
+<header class="header">
+  <div class="logo">座・Navi <span>座席管理システム</span></div>
+  <div class="user-info">
+    <details class="menu-dropdown">
+      <summary>
+        <img class="ico" src="<%= request.getContextPath() %>/images/ico_menu.png" alt="">
+        <%= session.getAttribute("userName") %> さん
+        <span class="caret">&#9662;</span>
+      </summary>
+      <div class="dropdown-panel">
+        <a href="<%= request.getContextPath() %>/ControlServlet?action=menu"><img class="ico" src="<%= request.getContextPath() %>/images/ico_menu.png" alt="">メニュー</a>
+        <% if (Boolean.TRUE.equals(session.getAttribute("isAdmin"))) { %>
+        <a href="<%= request.getContextPath() %>/ControlServlet?action=adminMenu"><img class="ico" src="<%= request.getContextPath() %>/images/ico_menu.png" alt="">管理メニューへ戻る</a>
+        <% } %>
+        <a href="<%= request.getContextPath() %>/ControlServlet?action=logout"><img class="ico" src="<%= request.getContextPath() %>/images/ico_logout.png" alt="">ログアウト</a>
+      </div>
+    </details>
+  </div>
+</header>

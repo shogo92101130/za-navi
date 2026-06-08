@@ -1,0 +1,25 @@
+<%@ page pageEncoding="UTF-8" %>
+<%-- 管理者用ヘッダー --%>
+<style>
+  /* 管理者画面は常にインディゴ/ネイビー系の基調色にする（一般ユーザー画面のティール系と区別するため）。
+     style.css の :root で定義された --teal 系の変数をここで上書きするだけで、
+     ヘッダー・ボタン・バッジなど teal 変数を使っている箇所がまとめて変わる。 */
+  :root { --teal:#3949AB; --teal-light:#7986CB; --teal-dark:#283593; }
+</style>
+<header class="header">
+  <div class="logo">座・Navi <span>座席管理システム</span><span class="admin-badge">管理者</span></div>
+  <div class="user-info">
+    <details class="menu-dropdown">
+      <summary>
+        <img class="ico" src="<%= request.getContextPath() %>/images/ico_menu.png" alt="">
+        <%= session.getAttribute("userName") %> さん
+        <span class="caret">&#9662;</span>
+      </summary>
+      <div class="dropdown-panel">
+        <a href="<%= request.getContextPath() %>/ControlServlet?action=adminMenu"><img class="ico" src="<%= request.getContextPath() %>/images/ico_menu.png" alt="">管理メニュー</a>
+        <a href="<%= request.getContextPath() %>/ControlServlet?action=menu"><img class="ico" src="<%= request.getContextPath() %>/images/ico_menu.png" alt="">一般メニュー</a>
+        <a href="<%= request.getContextPath() %>/ControlServlet?action=logout"><img class="ico" src="<%= request.getContextPath() %>/images/ico_logout.png" alt="">ログアウト</a>
+      </div>
+    </details>
+  </div>
+</header>
