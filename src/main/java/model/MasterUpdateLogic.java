@@ -109,6 +109,6 @@ public class MasterUpdateLogic implements Logic {
         req.setAttribute("selectedBase",  selectedBase);
         req.setAttribute("selectedFloor", selectedFloor);
         req.setAttribute("floors",        hasBase ? seatsDAO.getFloors(selectedBase) : null);
-        req.setAttribute("officeImage",   hasBase ? seatsDAO.getOfficeImage(selectedBase, selectedFloor) : null);
+        req.setAttribute("officeImage",   hasBase ? seatsDAO.getExpectedFloorImage(selectedBase, selectedFloor) : null);
     }
 }

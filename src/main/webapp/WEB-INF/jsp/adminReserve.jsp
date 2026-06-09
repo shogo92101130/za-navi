@@ -194,49 +194,38 @@
           </div>
         </div>
 
-        <!-- 拠点・フロア選択→フロアマップ、エリア選択→エリア専用画像（なければ動的グリッド）-->
+        <!-- 拠点・フロア選択→フロアマップ、エリア選択→エリアマップ（画像未設定時はプレースホルダー）-->
         <%
+          // getOfficeImage(String,String) のみ使用（新メソッドがコンパイル済みでなくても動作する）
           SeatsDAO _sdao = new SeatsDAO();
-          String officeImage = (selBase != null && !selBase.isEmpty())
-                  ? _sdao.getOfficeImage(selBase, selFloor) : null;
-          boolean hasSelArea = selArea != null && !selArea.isEmpty();
-          String areaImage2  = (hasSelArea && selFloor != null)
-                  ? _sdao.getAreaImage(selBase, selFloor, selArea) : null;
+          boolean hasSelArea  = selArea  != null && !selArea.isEmpty();
+          boolean hasSelFloor = selFloor != null && !selFloor.isEmpty();
+          boolean hasSelBase  = selBase  != null && !selBase.isEmpty();
+          String dispImage = null;
+          String dispLabel = "";
+          if (hasSelArea && hasSelFloor && hasSelBase) {
+              // エリア画像：命名規則から期待ファイル名を生成（例: office_三田_1F_A.png）
+              dispImage = "office_" + selBase + "_" + selFloor + "_" + selArea + ".png";
+              dispLabel = "エリアマップ画像が未設定です";
+          } else if (hasSelBase) {
+              // フロア画像：登録済み名を優先、未登録なら命名規則で生成
+              String reg = _sdao.getOfficeImage(selBase, hasSelFloor ? selFloor : null);
+              dispImage = (reg != null) ? reg
+                          : ("office_" + selBase + (hasSelFloor ? "_" + selFloor : "") + ".png");
+              dispLabel = "フロアマップ画像が未設定です";
+          }
         %>
-        <% if (areaImage2 != null) { %>
+        <% if (dispImage != null) { %>
         <div style="margin-top:14px;">
-          <img src="<%= ctx %>/images/<%= areaImage2 %>" alt="<%= selBase %><%= selFloor %><%= selArea %>のフロアマップ"
-               style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
-        </div>
-        <% } else if (hasSelArea && areaSeats != null && !areaSeats.isEmpty()) { %>
-        <div style="margin-top:14px;">
-          <p style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px;"><%= selArea %> 座席マップ<% if (selDate != null) { %>（<%= selDate %>）<% } %></p>
-          <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-width:500px;">
-          <% for (Seat smSeat : areaSeats) {
-               boolean smOcc = seatUsage != null && seatUsage.containsKey(smSeat.getSeatId());
-               String smName = (smOcc && seatUserNameMap != null && seatUserNameMap.containsKey(smSeat.getSeatId()))
-                               ? seatUserNameMap.get(smSeat.getSeatId()) : "";
-               String smDept = (smOcc && seatUserDeptMap != null && seatUserDeptMap.containsKey(smSeat.getSeatId()))
-                               ? seatUserDeptMap.get(smSeat.getSeatId()) : "";
-               String smTitle2 = smOcc ? (smDept.isEmpty() ? smName : smDept + " " + smName) : "空き";
-               String smStyle2 = smOcc
-                   ? "border:1px solid #F44336; background:#FFEBEE; color:#C62828;"
-                   : "border:1px solid #4CAF50; background:#E8F5E9; color:#2E7D32;";
-          %>
-            <div title="<%= smTitle2 %>"
-                 style="border-radius:6px; padding:8px 4px; text-align:center; font-size:12px; <%= smStyle2 %>">
-              <span style="display:block; font-weight:700; font-size:13px;"><%= smSeat.getSeatName() %></span>
-              <span style="display:block; font-size:11px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <%= smOcc ? (smName.isEmpty() ? "使用中" : smName) : "空き" %>
-              </span>
-            </div>
-          <% } %>
+          <img src="<%= ctx %>/images/<%= dispImage %>"
+               alt="<%= selBase %><%= selFloor != null ? selFloor : "" %><%= selArea != null ? selArea : "" %>のフロアマップ"
+               style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px; display:block;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="map-placeholder" style="display:none;">
+            <p class="ph-title"><%= dispLabel %></p>
+            <code><%= dispImage %></code>
+            <p class="ph-hint">このファイルを images/ フォルダに配置すると自動で表示されます</p>
           </div>
-        </div>
-        <% } else if (officeImage != null) { %>
-        <div style="margin-top:14px;">
-          <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selBase %>のフロアマップ"
-               style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
         </div>
         <% } %>
       </div>

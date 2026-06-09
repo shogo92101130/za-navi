@@ -64,16 +64,16 @@
          フロアを選んだ時点でそのフロアのマップに切り替わる） -->
     <% if (officeImage != null) { %>
     <div style="margin-bottom:16px;">
-      <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selectedBase %><%= selectedFloor != null ? selectedFloor : "" %>のフロアマップ"
-           style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
+      <img src="<%= ctx %>/images/<%= officeImage %>"
+           alt="<%= selectedBase %><%= selectedFloor != null ? selectedFloor : "" %>のフロアマップ"
+           style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px; display:block;"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+      <div class="map-placeholder" style="display:none;">
+        <p class="ph-title">フロアマップ画像が未設定です</p>
+        <code><%= officeImage %></code>
+        <p class="ph-hint">このファイルを images/ フォルダに配置すると自動で表示されます</p>
+      </div>
     </div>
-    <% } else if (selectedBase != null && !selectedBase.isEmpty()) { %>
-    <p style="color:#9E9E9E; font-size:12px; margin-bottom:16px;">
-      ※「<%= selectedBase %><%= (selectedFloor != null && !selectedFloor.isEmpty()) ? selectedFloor : "" %>」のフロアマップ画像はまだ登録されていません。
-      <code>images</code> フォルダに画像ファイルを追加して、
-      <code>SeatsDAO</code> の <code>OFFICE_IMAGES</code> に「拠点名」（フロアごとに画像が違う場合は「拠点名_フロア名」、例:「<%= selectedBase %>_<%= (selectedFloor != null && !selectedFloor.isEmpty()) ? selectedFloor : "1F" %>」）の
-      キーで登録すると、ここにも表示されます。
-    </p>
     <% } %>
 
     <!-- 座席一覧（①で選んだオフィスのみ表示。未選択ならすべて表示） -->

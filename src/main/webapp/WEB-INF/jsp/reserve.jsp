@@ -117,7 +117,13 @@
       <% if (officeImage != null) { %>
       <div style="margin-bottom:16px;">
         <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selBase %><%= selFloor %>のフロアマップ"
-             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
+             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px; display:block;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="map-placeholder" style="display:none;">
+          <p class="ph-title">フロアマップ画像が未設定です</p>
+          <code><%= officeImage %></code>
+          <p class="ph-hint">このファイルを images/ フォルダに配置すると自動で表示されます</p>
+        </div>
       </div>
       <% } %>
 
@@ -202,36 +208,17 @@
         </div>
       </div>
 
-      <!-- ③ エリアマップ：エリア専用画像があれば表示、なければ動的グリッドにフォールバック -->
+      <!-- ③ エリアマップ画像（ファイルが未設定の場合はプレースホルダーを表示） -->
       <% String areaImage = (String) request.getAttribute("areaImage"); %>
       <% if (areaImage != null) { %>
       <div style="margin-bottom:16px;">
-        <img src="<%= ctx %>/images/<%= areaImage %>" alt="<%= selBase %><%= selFloor %><%= selArea %>のフロアマップ"
-             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
-      </div>
-      <% } else if (areaSeats != null && !areaSeats.isEmpty()) { %>
-      <div style="margin-bottom:20px;">
-        <p style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px;"><%= selArea %> 座席マップ（<%= selectedDate %>）</p>
-        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-width:500px;">
-        <% for (Seat smSeat : areaSeats) {
-             boolean smOcc = usage != null && usage.containsKey(smSeat.getSeatId());
-             String smName = (smOcc && userNameMap != null && userNameMap.containsKey(smSeat.getSeatId()))
-                             ? userNameMap.get(smSeat.getSeatId()) : "";
-             String smDept = (smOcc && userDeptMap != null && userDeptMap.containsKey(smSeat.getSeatId()))
-                             ? userDeptMap.get(smSeat.getSeatId()) : "";
-             String smTitle = smOcc ? (smDept.isEmpty() ? smName : smDept + " " + smName) : "空き";
-             String smStyle = smOcc
-                 ? "border:1px solid #F44336; background:#FFEBEE; color:#C62828;"
-                 : "border:1px solid #4CAF50; background:#E8F5E9; color:#2E7D32;";
-        %>
-          <div title="<%= smTitle %>"
-               style="border-radius:6px; padding:8px 4px; text-align:center; font-size:12px; <%= smStyle %>">
-            <span style="display:block; font-weight:700; font-size:13px;"><%= smSeat.getSeatName() %></span>
-            <span style="display:block; font-size:11px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-              <%= smOcc ? (smName.isEmpty() ? "使用中" : smName) : "空き" %>
-            </span>
-          </div>
-        <% } %>
+        <img src="<%= ctx %>/images/<%= areaImage %>" alt="<%= selBase %><%= selFloor %><%= selArea %>エリアのフロアマップ"
+             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px; display:block;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="map-placeholder" style="display:none;">
+          <p class="ph-title">エリアマップ画像が未設定です</p>
+          <code><%= areaImage %></code>
+          <p class="ph-hint">このファイルを images/ フォルダに配置すると自動で表示されます</p>
         </div>
       </div>
       <% } %>

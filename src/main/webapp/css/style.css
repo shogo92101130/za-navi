@@ -342,6 +342,47 @@ body {
     background: #FAFAFA;
 }
 
+/* ─── オフィスマップ画像プレースホルダー ─── */
+.map-placeholder {
+    width: 100%;
+    min-height: 130px;
+    border: 2px dashed #B0BEC5;
+    border-radius: 8px;
+    background: #FAFAFA;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px 16px;
+    color: #90A4AE;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+.map-placeholder .ph-title {
+    font-weight: 700;
+    color: #78909C;
+    margin: 0;
+    font-size: 13px;
+}
+.map-placeholder code {
+    background: #ECEFF1;
+    border: 1px solid #CFD8DC;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #546E7A;
+    word-break: break-all;
+    font-family: "Consolas", "Courier New", monospace;
+}
+.map-placeholder .ph-hint {
+    font-size: 11px;
+    color: #B0BEC5;
+    margin: 0;
+}
+
 /* ─── 管理者バッジ ─── */
 .admin-badge {
     background: #FF9800;

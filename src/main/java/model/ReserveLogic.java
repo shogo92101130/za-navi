@@ -58,10 +58,11 @@ public class ReserveLogic implements Logic {
         req.setAttribute("selFloor", sFloor);
         req.setAttribute("selArea",  sArea);
 
-        // フロアマップ画像：拠点とフロアの両方が決まる「エリア選択」以降の画面で、
-        // 座席の場所（a,b,cどのエリアか）を確認できるように表示する（座席選択画面でも同じ画像を再掲）
+        // フロアマップ画像：拠点とフロアの両方が決まる「エリア選択」以降の画面で表示。
+        // 登録済み画像は実ファイル名、未登録（新規追加オフィス等）は命名規則から自動生成。
+        // ファイルが存在しない場合は JSP 側の onerror でプレースホルダーを表示する。
         if (("area".equals(stage) || "seat".equals(stage)) && sBase != null && sFloor != null) {
-            req.setAttribute("officeImage", seatsDAO.getOfficeImage(sBase, sFloor));
+            req.setAttribute("officeImage", seatsDAO.getExpectedFloorImage(sBase, sFloor));
         }
 
         // 今日の座席利用マップ（埋有率計算用）
@@ -150,9 +151,9 @@ public class ReserveLogic implements Logic {
                 int total = areaSeats.size();
                 int rate  = total > 0 ? (int)(usedCount * 100 / total) : 0;
 
-                // エリア専用画像（画像ファイルが images/ に存在する場合のみ非 null）
-                // null の場合は JSP が動的グリッドにフォールバックする
-                req.setAttribute("areaImage", seatsDAO.getAreaImage(sBase, sFloor, sArea));
+                // エリアマップ画像（登録済みは実ファイル名、未登録は命名規則から自動生成）
+                // ファイルが存在しない場合は JSP 側の onerror でプレースホルダーを表示する
+                req.setAttribute("areaImage", seatsDAO.getExpectedAreaImage(sBase, sFloor, sArea));
 
                 req.setAttribute("areaSeats",  areaSeats);
                 req.setAttribute("seatUsage",  usage);
