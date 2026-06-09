@@ -194,12 +194,38 @@
           </div>
         </div>
 
-        <!-- 拠点（とフロア）を選ぶと、該当のフロアマップ画像を表示する -->
+        <!-- 拠点・フロア選択時はフロアマップ、エリア選択時はエリア座席マップを表示 -->
         <%
           String officeImage = (selBase != null && !selBase.isEmpty())
                   ? new SeatsDAO().getOfficeImage(selBase, selFloor) : null;
+          boolean hasSelArea = selArea != null && !selArea.isEmpty();
         %>
-        <% if (officeImage != null) { %>
+        <% if (hasSelArea && areaSeats != null && !areaSeats.isEmpty()) { %>
+        <div style="margin-top:14px;">
+          <p style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px;"><%= selArea %> 座席マップ<% if (selDate != null) { %>（<%= selDate %>）<% } %></p>
+          <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-width:500px;">
+          <% for (Seat smSeat : areaSeats) {
+               boolean smOcc = seatUsage != null && seatUsage.containsKey(smSeat.getSeatId());
+               String smName = (smOcc && seatUserNameMap != null && seatUserNameMap.containsKey(smSeat.getSeatId()))
+                               ? seatUserNameMap.get(smSeat.getSeatId()) : "";
+               String smDept = (smOcc && seatUserDeptMap != null && seatUserDeptMap.containsKey(smSeat.getSeatId()))
+                               ? seatUserDeptMap.get(smSeat.getSeatId()) : "";
+               String smTitle2 = smOcc ? (smDept.isEmpty() ? smName : smDept + " " + smName) : "空き";
+               String smStyle2 = smOcc
+                   ? "border:1px solid #F44336; background:#FFEBEE; color:#C62828;"
+                   : "border:1px solid #4CAF50; background:#E8F5E9; color:#2E7D32;";
+          %>
+            <div title="<%= smTitle2 %>"
+                 style="border-radius:6px; padding:8px 4px; text-align:center; font-size:12px; <%= smStyle2 %>">
+              <span style="display:block; font-weight:700; font-size:13px;"><%= smSeat.getSeatName() %></span>
+              <span style="display:block; font-size:11px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <%= smOcc ? (smName.isEmpty() ? "使用中" : smName) : "空き" %>
+              </span>
+            </div>
+          <% } %>
+          </div>
+        </div>
+        <% } else if (officeImage != null) { %>
         <div style="margin-top:14px;">
           <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selBase %>のフロアマップ"
                style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">

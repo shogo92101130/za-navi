@@ -202,15 +202,31 @@
         </div>
       </div>
 
-      <!-- ③ オフィスレイアウト画像（エリア選択画面と同じフロアマップを再掲し、座席の場所を確認できるように） -->
-      <% if (officeImage != null) { %>
-      <div style="margin-bottom:16px;">
-        <img src="<%= ctx %>/images/<%= officeImage %>" alt="<%= selBase %><%= selFloor %>のフロアマップ"
-             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
-      </div>
-      <% } else { %>
-      <div class="layout-placeholder">
-        オフィスレイアウト画像<br>（images フォルダに画像を追加して差し替え）
+      <!-- ③ エリア座席マップ（各座席の空き・使用状況をビジュアルで表示） -->
+      <% if (areaSeats != null && !areaSeats.isEmpty()) { %>
+      <div style="margin-bottom:20px;">
+        <p style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px;"><%= selArea %> 座席マップ（<%= selectedDate %>）</p>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-width:500px;">
+        <% for (Seat smSeat : areaSeats) {
+             boolean smOcc = usage != null && usage.containsKey(smSeat.getSeatId());
+             String smName = (smOcc && userNameMap != null && userNameMap.containsKey(smSeat.getSeatId()))
+                             ? userNameMap.get(smSeat.getSeatId()) : "";
+             String smDept = (smOcc && userDeptMap != null && userDeptMap.containsKey(smSeat.getSeatId()))
+                             ? userDeptMap.get(smSeat.getSeatId()) : "";
+             String smTitle = smOcc ? (smDept.isEmpty() ? smName : smDept + " " + smName) : "空き";
+             String smStyle = smOcc
+                 ? "border:1px solid #F44336; background:#FFEBEE; color:#C62828;"
+                 : "border:1px solid #4CAF50; background:#E8F5E9; color:#2E7D32;";
+        %>
+          <div title="<%= smTitle %>"
+               style="border-radius:6px; padding:8px 4px; text-align:center; font-size:12px; <%= smStyle %>">
+            <span style="display:block; font-weight:700; font-size:13px;"><%= smSeat.getSeatName() %></span>
+            <span style="display:block; font-size:11px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <%= smOcc ? (smName.isEmpty() ? "使用中" : smName) : "空き" %>
+            </span>
+          </div>
+        <% } %>
+        </div>
       </div>
       <% } %>
 
