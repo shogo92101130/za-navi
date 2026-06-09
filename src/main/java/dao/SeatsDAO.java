@@ -42,6 +42,28 @@ public class SeatsDAO {
         OFFICE_IMAGES.put("三田", "office_mita.png");
         OFFICE_IMAGES.put("芝浦", "office_shibaura.png");
         OFFICE_IMAGES.put("中野", "office_nakano.png");
+
+        // エリア専用画像（座席選択画面でエリアを選んだときに表示）
+        // ファイルが images/ フォルダに存在しない場合は getAreaImage() が null を返し、
+        // JSP 側は動的グリッド（緑/赤の空き状況マップ）にフォールバックする
+        OFFICE_IMAGES.put("三田_1F_A", "office_mita_1F_A.png");
+        OFFICE_IMAGES.put("三田_1F_B", "office_mita_1F_B.png");
+        OFFICE_IMAGES.put("三田_1F_C", "office_mita_1F_C.png");
+        OFFICE_IMAGES.put("三田_2F_A", "office_mita_2F_A.png");
+        OFFICE_IMAGES.put("三田_2F_B", "office_mita_2F_B.png");
+        OFFICE_IMAGES.put("三田_2F_C", "office_mita_2F_C.png");
+        OFFICE_IMAGES.put("芝浦_1F_A", "office_shibaura_1F_A.png");
+        OFFICE_IMAGES.put("芝浦_1F_B", "office_shibaura_1F_B.png");
+        OFFICE_IMAGES.put("芝浦_1F_C", "office_shibaura_1F_C.png");
+        OFFICE_IMAGES.put("芝浦_2F_A", "office_shibaura_2F_A.png");
+        OFFICE_IMAGES.put("芝浦_2F_B", "office_shibaura_2F_B.png");
+        OFFICE_IMAGES.put("芝浦_2F_C", "office_shibaura_2F_C.png");
+        OFFICE_IMAGES.put("中野_1F_A", "office_nakano_1F_A.png");
+        OFFICE_IMAGES.put("中野_1F_B", "office_nakano_1F_B.png");
+        OFFICE_IMAGES.put("中野_1F_C", "office_nakano_1F_C.png");
+        OFFICE_IMAGES.put("中野_2F_A", "office_nakano_2F_A.png");
+        OFFICE_IMAGES.put("中野_2F_B", "office_nakano_2F_B.png");
+        OFFICE_IMAGES.put("中野_2F_C", "office_nakano_2F_C.png");
     }
 
     /** 拠点名に対応するフロアマップ画像ファイル名を返す（未登録の拠点はnull） */
@@ -61,6 +83,17 @@ public class SeatsDAO {
             if (perFloor != null) return perFloor;
         }
         return OFFICE_IMAGES.get(baseName);
+    }
+
+    /**
+     * エリア専用のフロアマップ画像ファイル名を返す。
+     * "拠点名_フロア名_エリア名" キーが登録されていればそのファイル名を、
+     * 無ければ null を返す（フロア/拠点へのフォールバックはしない）。
+     * null の場合、JSP 側は動的グリッドにフォールバックする。
+     */
+    public String getAreaImage(String baseName, String floorName, String areaName) {
+        if (baseName == null || floorName == null || areaName == null) return null;
+        return OFFICE_IMAGES.get(baseName + "_" + floorName + "_" + areaName);
     }
 
     private Seat map(ResultSet rs) throws SQLException {

@@ -194,13 +194,21 @@
           </div>
         </div>
 
-        <!-- 拠点・フロア選択時はフロアマップ、エリア選択時はエリア座席マップを表示 -->
+        <!-- 拠点・フロア選択→フロアマップ、エリア選択→エリア専用画像（なければ動的グリッド）-->
         <%
+          SeatsDAO _sdao = new SeatsDAO();
           String officeImage = (selBase != null && !selBase.isEmpty())
-                  ? new SeatsDAO().getOfficeImage(selBase, selFloor) : null;
+                  ? _sdao.getOfficeImage(selBase, selFloor) : null;
           boolean hasSelArea = selArea != null && !selArea.isEmpty();
+          String areaImage2  = (hasSelArea && selFloor != null)
+                  ? _sdao.getAreaImage(selBase, selFloor, selArea) : null;
         %>
-        <% if (hasSelArea && areaSeats != null && !areaSeats.isEmpty()) { %>
+        <% if (areaImage2 != null) { %>
+        <div style="margin-top:14px;">
+          <img src="<%= ctx %>/images/<%= areaImage2 %>" alt="<%= selBase %><%= selFloor %><%= selArea %>のフロアマップ"
+               style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
+        </div>
+        <% } else if (hasSelArea && areaSeats != null && !areaSeats.isEmpty()) { %>
         <div style="margin-top:14px;">
           <p style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px;"><%= selArea %> 座席マップ<% if (selDate != null) { %>（<%= selDate %>）<% } %></p>
           <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-width:500px;">

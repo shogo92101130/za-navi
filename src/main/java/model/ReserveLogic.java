@@ -150,6 +150,10 @@ public class ReserveLogic implements Logic {
                 int total = areaSeats.size();
                 int rate  = total > 0 ? (int)(usedCount * 100 / total) : 0;
 
+                // エリア専用画像（画像ファイルが images/ に存在する場合のみ非 null）
+                // null の場合は JSP が動的グリッドにフォールバックする
+                req.setAttribute("areaImage", seatsDAO.getAreaImage(sBase, sFloor, sArea));
+
                 req.setAttribute("areaSeats",  areaSeats);
                 req.setAttribute("seatUsage",  usage);
                 req.setAttribute("seatUserNameMap", seatUserNameMap);

@@ -202,8 +202,14 @@
         </div>
       </div>
 
-      <!-- ③ エリア座席マップ（各座席の空き・使用状況をビジュアルで表示） -->
-      <% if (areaSeats != null && !areaSeats.isEmpty()) { %>
+      <!-- ③ エリアマップ：エリア専用画像があれば表示、なければ動的グリッドにフォールバック -->
+      <% String areaImage = (String) request.getAttribute("areaImage"); %>
+      <% if (areaImage != null) { %>
+      <div style="margin-bottom:16px;">
+        <img src="<%= ctx %>/images/<%= areaImage %>" alt="<%= selBase %><%= selFloor %><%= selArea %>のフロアマップ"
+             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px;">
+      </div>
+      <% } else if (areaSeats != null && !areaSeats.isEmpty()) { %>
       <div style="margin-bottom:20px;">
         <p style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px;"><%= selArea %> 座席マップ（<%= selectedDate %>）</p>
         <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-width:500px;">
