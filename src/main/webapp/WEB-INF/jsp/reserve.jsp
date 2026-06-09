@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="java.util.*, entity.Seat" %>
+<%@ page import="java.util.*, entity.Seat, dao.SeatsDAO" %>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -21,6 +21,7 @@
 
   // stage → 番号マッピング（ステージバー用）
   int stageNum = "base".equals(stage) ? 1 : "floor".equals(stage) ? 2 : "area".equals(stage) ? 3 : 4;
+  SeatsDAO _sdaoRsv = new SeatsDAO();
 %>
 
 <div class="container">
@@ -66,9 +67,20 @@
           long used = usedObj instanceof Long ? (Long)usedObj : ((Integer)usedObj).longValue();
           String barClass = rate < 50 ? "" : rate < 80 ? "med" : rate < 100 ? "high" : "full";
           String encoded  = java.net.URLEncoder.encode(name, "UTF-8");
+          String _rBase = _sdaoRsv.getOfficeImage(name);
+          String _iBase = (_rBase != null) ? _rBase : ("office_" + name + ".png");
       %>
         <a class="occ-card"
            href="<%= ctx %>/ControlServlet?action=reserve&stage=floor&base=<%= encoded %>">
+          <div style="border-radius:5px; overflow:hidden; margin-bottom:8px; height:72px; background:#ECEFF1;">
+            <img src="<%= ctx %>/images/<%= _iBase %>" alt="<%= name %>のオフィス"
+                 style="width:100%; height:72px; object-fit:cover; display:block;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="display:none; height:72px; align-items:center; justify-content:center; flex-direction:column; gap:3px; font-size:11px; color:#B0BEC5; border:2px dashed #CFD8DC; border-radius:5px;">
+              <span>画像未設定</span>
+              <code style="font-size:9px; color:#90A4AE; word-break:break-all;"><%= _iBase %></code>
+            </div>
+          </div>
           <div class="occ-name"><%= name %></div>
           <div class="occ-bar-bg">
             <div class="occ-bar <%= barClass %>" style="width:<%= rate %>%;"></div>
@@ -95,9 +107,20 @@
           String barClass = rate < 50 ? "" : rate < 80 ? "med" : rate < 100 ? "high" : "full";
           String encodedBase  = java.net.URLEncoder.encode(selBase, "UTF-8");
           String encodedFloor = java.net.URLEncoder.encode(name, "UTF-8");
+          String _rFloor = _sdaoRsv.getOfficeImage(selBase, name);
+          String _iFloor = (_rFloor != null) ? _rFloor : ("office_" + selBase + "_" + name + ".png");
       %>
         <a class="occ-card"
            href="<%= ctx %>/ControlServlet?action=reserve&stage=area&base=<%= encodedBase %>&floor=<%= encodedFloor %>">
+          <div style="border-radius:5px; overflow:hidden; margin-bottom:8px; height:72px; background:#ECEFF1;">
+            <img src="<%= ctx %>/images/<%= _iFloor %>" alt="<%= selBase %><%= name %>のフロアマップ"
+                 style="width:100%; height:72px; object-fit:cover; display:block;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="display:none; height:72px; align-items:center; justify-content:center; flex-direction:column; gap:3px; font-size:11px; color:#B0BEC5; border:2px dashed #CFD8DC; border-radius:5px;">
+              <span>画像未設定</span>
+              <code style="font-size:9px; color:#90A4AE; word-break:break-all;"><%= _iFloor %></code>
+            </div>
+          </div>
           <div class="occ-name"><%= name %></div>
           <div class="occ-bar-bg">
             <div class="occ-bar <%= barClass %>" style="width:<%= rate %>%;"></div>
