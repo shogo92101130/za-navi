@@ -33,6 +33,12 @@ public class MasterUpdateLogic implements Logic {
             case "doMasterAdd": {
                 // 新規追加
                 Seat s = buildSeat(req, 0);
+                if (dao.exists(s.getBaseName(), s.getFName(), s.getAreaName(), s.getSeatName(), -1)) {
+                    req.setAttribute("errorMsg",
+                        "同じ座席（" + s.getBaseName() + " " + s.getFName() + " " + s.getAreaName() + " " + s.getSeatName() + "）はすでに存在します。");
+                    setListAttributes(req, dao);
+                    return "/WEB-INF/jsp/masterUpdate.jsp";
+                }
                 dao.add(s);
                 req.setAttribute("message", "座席「" + s.getSeatName() + "」を追加しました。");
                 setListAttributes(req, dao);
@@ -43,6 +49,13 @@ public class MasterUpdateLogic implements Logic {
                 // 更新
                 int id = Integer.parseInt(req.getParameter("seatId"));
                 Seat s = buildSeat(req, id);
+                if (dao.exists(s.getBaseName(), s.getFName(), s.getAreaName(), s.getSeatName(), id)) {
+                    req.setAttribute("errorMsg",
+                        "同じ座席（" + s.getBaseName() + " " + s.getFName() + " " + s.getAreaName() + " " + s.getSeatName() + "）はすでに存在します。");
+                    req.setAttribute("editSeat", dao.findById(id));
+                    setListAttributes(req, dao);
+                    return "/WEB-INF/jsp/masterUpdate.jsp";
+                }
                 dao.update(s);
                 req.setAttribute("message", "座席ID " + id + " を更新しました。");
                 setListAttributes(req, dao);

@@ -35,6 +35,24 @@ public class MastersDAO {
         return list;
     }
 
+    /** 指定の拠点・フロア・エリア・席名と同じ座席が既に存在するか（excludeSeatIdの席は除く） */
+    public boolean exists(String baseName, String fName, String areaName, String seatName, int excludeSeatId) {
+        String sql = "SELECT 1 FROM seats WHERE base_name=? AND f_name=? AND area_name=? AND seat_name=? AND seat_id<>?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, baseName);
+            ps.setString(2, fName);
+            ps.setString(3, areaName);
+            ps.setString(4, seatName);
+            ps.setInt(5, excludeSeatId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("座席の重複チェックに失敗しました", e);
+        }
+    }
+
     public Seat findById(int seatId) {
         String sql = "SELECT seat_id, base_name, area_name, f_name, seat_name FROM seats WHERE seat_id = ?";
         try (Connection conn = DBUtil.getConnection();

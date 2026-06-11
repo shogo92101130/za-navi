@@ -19,6 +19,11 @@
     <div class="alert alert-success">&#10003; <%= request.getAttribute("message") %></div>
     <% } %>
 
+    <!-- エラーメッセージ（重複座席など） -->
+    <% if (request.getAttribute("errorMsg") != null) { %>
+    <div class="alert alert-danger"><%= request.getAttribute("errorMsg") %></div>
+    <% } %>
+
     <%
       List<Seat> seats    = (List<Seat>) request.getAttribute("seats");
       List<String> bases  = (List<String>) request.getAttribute("bases");
