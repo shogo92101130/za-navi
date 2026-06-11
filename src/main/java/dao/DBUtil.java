@@ -1,30 +1,19 @@
 package dao;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * MySQL接続の共通クラス。
  * 各DAOはここから Connection を取得してJDBC操作を行う（接続情報を一箇所にまとめるため）。
  *
  * 接続先DB: zaseki1（docs/db/za_navi_schema.sql で作成）
- *
- * 1ページの表示で複数のDAOメソッドを呼ぶたびに DriverManager.getConnection() で
- * MySQLへ新しいTCP接続・認証をやり直すと、その回数分だけ表示が遅くなる。
- * そのため接続をプールして使い回す。close()はプールへ返却するだけにし、
- * 各DAOの try-with-resources はそのまま使えるようにする（DAO側の変更は不要）。
  */
 public class DBUtil {
     private static final String URL  = "jdbc:mysql://localhost:3306/zaseki1?useSSL=false&serverTimezone=Asia/Tokyo&characterEncoding=UTF-8";
     private static final String USER = "root";
     private static final String PASS = "your_password";
-    private static final int POOL_SIZE = 10;
-
-    private static final ConcurrentLinkedQueue<Connection> POOL = new ConcurrentLinkedQueue<>();
 
     static {
         try {
@@ -35,43 +24,6 @@ public class DBUtil {
     }
 
     public static Connection getConnection() throws SQLException {
-        Connection real = POOL.poll();
-        while (real != null && !isUsable(real)) {
-            real = POOL.poll();
-        }
-        if (real == null) {
-            real = DriverManager.getConnection(URL, USER, PASS);
-        }
-        return wrap(real);
-    }
-
-    private static boolean isUsable(Connection conn) {
-        try {
-            return !conn.isClosed() && conn.isValid(1);
-        } catch (SQLException e) {
-            return false;
-        }
-    }
-
-    /** close() をプールへの返却に置き換えたConnectionのプロキシを返す */
-    private static Connection wrap(final Connection real) {
-        return (Connection) Proxy.newProxyInstance(
-                DBUtil.class.getClassLoader(),
-                new Class<?>[]{Connection.class},
-                (proxy, method, args) -> {
-                    if ("close".equals(method.getName())) {
-                        if (POOL.size() < POOL_SIZE && isUsable(real)) {
-                            POOL.offer(real);
-                        } else {
-                            real.close();
-                        }
-                        return null;
-                    }
-                    try {
-                        return method.invoke(real, args);
-                    } catch (InvocationTargetException e) {
-                        throw e.getCause() != null ? e.getCause() : e;
-                    }
-                });
+        return DriverManager.getConnection(URL, USER, PASS);
     }
 }
