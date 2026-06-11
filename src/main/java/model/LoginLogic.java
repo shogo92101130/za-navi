@@ -40,6 +40,13 @@ public class LoginLogic implements Logic {
             return "/WEB-INF/jsp/loginNG.jsp";
         }
 
+        // 「管理者ログイン」フォームから入力された場合は、管理者権限を持つアカウントのみ許可する
+        // （一般社員が管理者ログインから一般メニューに入れてしまわないようにするため）
+        if ("admin".equals(req.getParameter("loginType")) && account.getAdmin() != 1) {
+            req.setAttribute("errorMsg", "管理者権限がありません。");
+            return "/WEB-INF/jsp/loginNG.jsp";
+        }
+
         // セッションを新規発行してユーザー情報を格納
         HttpSession session = req.getSession(true);
         session.setAttribute("userId",   account.getUserId());

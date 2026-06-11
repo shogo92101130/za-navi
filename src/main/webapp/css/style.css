@@ -312,6 +312,8 @@ body {
 .badge-green { background: #E8F5E9; color: #2E7D32; }
 .badge-red   { background: #FFEBEE; color: #B71C1C; }
 .badge-gray  { background: #ECEFF1; color: #546E7A; }
+.badge-blue   { background: #E3F2FD; color: #1565C0; }
+.badge-orange { background: #FFF3E0; color: #E65100; }
 
 /* ─── 2週間分の予約状況（折りたたみ行） ─── */
 .day-summary { border: 1px solid #ECEFF1; border-radius: 6px; margin-bottom: 6px; overflow: hidden; }

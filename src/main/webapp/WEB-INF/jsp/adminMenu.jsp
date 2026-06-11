@@ -75,17 +75,23 @@
       </div>
       <% if (deptSeatList != null && !deptSeatList.isEmpty()) { %>
       <table class="table" style="margin-top:10px;">
-        <thead><tr><th>氏名</th><th>拠点</th><th>座席</th></tr></thead>
+        <thead><tr><th>氏名</th><th>本日の状況</th><th>拠点</th><th>座席</th></tr></thead>
         <tbody>
         <% for (Map<String, Object> row : deptSeatList) {
              Seat seat = (Seat) row.get("seat");
+             String status = (String) row.get("todayStatus");
              String baseLabel = seat != null ? seat.getBaseName() : "─";
              String seatLabel = seat != null
                  ? seat.getFName() + " " + seat.getAreaName() + " " + seat.getSeatName()
-                 : "座席未定";
+                 : ("出社".equals(status) ? "座席未定" : "─");
+             String statusBadge = "出社".equals(status) ? "badge-green"
+                                 : "在宅".equals(status) ? "badge-blue"
+                                 : "出張".equals(status) ? "badge-orange"
+                                 : "badge-gray";
         %>
           <tr>
             <td><%= row.get("name") %></td>
+            <td><span class="badge <%= statusBadge %>"><%= status %></span></td>
             <td><%= baseLabel %></td>
             <td><%= seatLabel %></td>
           </tr>

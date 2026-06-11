@@ -42,9 +42,21 @@ public class AdminReserveLogic implements Logic {
             deptNames.add(loc.getBName());
         }
 
+        // パラメータ引き継ぎ（段階選択用）
+        String base  = req.getParameter("base");
+        String floor = req.getParameter("floor");
+        String area  = req.getParameter("area");
+        String date  = req.getParameter("date");
+        String selectedDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
+        req.setAttribute("selectedDate", selectedDate);
+
         // 「○○部署の○○」形式で検索・表示できるように、社員一覧に部署名を付与
+        // すでにその日の予定（出社・在宅・出張のいずれか）が入っている人は、
+        // 代理予約しても結局エラーになるため、検索結果の時点で除外しておく
+        ReservationsDAO resDAO = new ReservationsDAO();
         List<Map<String, Object>> accountRows = new ArrayList<>();
         for (Account a : accDAO.findAll()) {
+            if (resDAO.findActiveByUserAndDate(a.getUserId(), selectedDate) != null) continue;
             String bName = deptNameMap.getOrDefault(a.getBId(), "不明");
             Map<String, Object> row = new HashMap<>();
             row.put("userId", a.getUserId());
@@ -56,12 +68,6 @@ public class AdminReserveLogic implements Logic {
         req.setAttribute("accountRows", accountRows);
         req.setAttribute("deptNames", deptNames);
         req.setAttribute("bases",    seatsDAO.getBases());
-
-        // パラメータ引き継ぎ（段階選択用）
-        String base  = req.getParameter("base");
-        String floor = req.getParameter("floor");
-        String area  = req.getParameter("area");
-        String date  = req.getParameter("date");
 
         // 「対象社員を選択してください」等のエラーで画面に戻ってきたときや、
         // 拠点・フロア・エリアを切り替えてページが再読み込みされたときも、
@@ -87,11 +93,8 @@ public class AdminReserveLogic implements Logic {
         }
         if (area != null && !area.isEmpty() && base != null && floor != null) {
             req.setAttribute("selArea", area);
-            String selectedDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
-            req.setAttribute("selectedDate", selectedDate);
 
             // 指定日の座席状況
-            ReservationsDAO resDAO = new ReservationsDAO();
             Map<Integer, String> usage = resDAO.getSeatUsageForDate(selectedDate);
             List<Seat> seats = seatsDAO.findByArea(base, floor, area);
 

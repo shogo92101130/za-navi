@@ -46,27 +46,26 @@ public class SeatsDAO {
         // エリア専用画像（座席選択画面でエリアを選んだときに表示）
         // ファイルが images/ フォルダに存在しない場合は getAreaImage() が null を返し、
         // JSP 側は動的グリッド（緑/赤の空き状況マップ）にフォールバックする
-        // エリア画像はファイル名も日本語ベースの命名規則で統一する。
-        // 命名規則: office_{拠点}_{フロア}_{エリア}.png （例: office_三田_1F_A.png）
-        // JSP からの inline 生成（getOfficeImage を使わない場合）と一致させるため。
-        OFFICE_IMAGES.put("三田_1F_A", "office_三田_1F_A.png");
-        OFFICE_IMAGES.put("三田_1F_B", "office_三田_1F_B.png");
-        OFFICE_IMAGES.put("三田_1F_C", "office_三田_1F_C.png");
-        OFFICE_IMAGES.put("三田_2F_A", "office_三田_2F_A.png");
-        OFFICE_IMAGES.put("三田_2F_B", "office_三田_2F_B.png");
-        OFFICE_IMAGES.put("三田_2F_C", "office_三田_2F_C.png");
-        OFFICE_IMAGES.put("芝浦_1F_A", "office_芝浦_1F_A.png");
-        OFFICE_IMAGES.put("芝浦_1F_B", "office_芝浦_1F_B.png");
-        OFFICE_IMAGES.put("芝浦_1F_C", "office_芝浦_1F_C.png");
-        OFFICE_IMAGES.put("芝浦_2F_A", "office_芝浦_2F_A.png");
-        OFFICE_IMAGES.put("芝浦_2F_B", "office_芝浦_2F_B.png");
-        OFFICE_IMAGES.put("芝浦_2F_C", "office_芝浦_2F_C.png");
-        OFFICE_IMAGES.put("中野_1F_A", "office_中野_1F_A.png");
-        OFFICE_IMAGES.put("中野_1F_B", "office_中野_1F_B.png");
-        OFFICE_IMAGES.put("中野_1F_C", "office_中野_1F_C.png");
-        OFFICE_IMAGES.put("中野_2F_A", "office_中野_2F_A.png");
-        OFFICE_IMAGES.put("中野_2F_B", "office_中野_2F_B.png");
-        OFFICE_IMAGES.put("中野_2F_C", "office_中野_2F_C.png");
+        // ファイル名はフロア画像（office_mita_1F.png 等）と同じくローマ字の命名規則で統一する。
+        // 命名規則: office_{拠点ローマ字}_{フロア}_{エリア}.png （例: office_mita_1F_A.png）
+        OFFICE_IMAGES.put("三田_1F_A", "office_mita_1F_A.png");
+        OFFICE_IMAGES.put("三田_1F_B", "office_mita_1F_B.png");
+        OFFICE_IMAGES.put("三田_1F_C", "office_mita_1F_C.png");
+        OFFICE_IMAGES.put("三田_2F_A", "office_mita_2F_A.png");
+        OFFICE_IMAGES.put("三田_2F_B", "office_mita_2F_B.png");
+        OFFICE_IMAGES.put("三田_2F_C", "office_mita_2F_C.png");
+        OFFICE_IMAGES.put("芝浦_1F_A", "office_shibaura_1F_A.png");
+        OFFICE_IMAGES.put("芝浦_1F_B", "office_shibaura_1F_B.png");
+        OFFICE_IMAGES.put("芝浦_1F_C", "office_shibaura_1F_C.png");
+        OFFICE_IMAGES.put("芝浦_2F_A", "office_shibaura_2F_A.png");
+        OFFICE_IMAGES.put("芝浦_2F_B", "office_shibaura_2F_B.png");
+        OFFICE_IMAGES.put("芝浦_2F_C", "office_shibaura_2F_C.png");
+        OFFICE_IMAGES.put("中野_1F_A", "office_nakano_1F_A.png");
+        OFFICE_IMAGES.put("中野_1F_B", "office_nakano_1F_B.png");
+        OFFICE_IMAGES.put("中野_1F_C", "office_nakano_1F_C.png");
+        OFFICE_IMAGES.put("中野_2F_A", "office_nakano_2F_A.png");
+        OFFICE_IMAGES.put("中野_2F_B", "office_nakano_2F_B.png");
+        OFFICE_IMAGES.put("中野_2F_C", "office_nakano_2F_C.png");
     }
 
     /** 拠点名に対応するフロアマップ画像ファイル名を返す（未登録の拠点はnull） */

@@ -18,6 +18,10 @@
   <div class="card">
     <h2>氏名検索</h2>
 
+    <% if (request.getAttribute("errorMsg") != null) { %>
+    <div class="alert alert-danger"><%= request.getAttribute("errorMsg") %></div>
+    <% } %>
+
     <form action="<%= request.getContextPath() %>/ControlServlet" method="get">
       <input type="hidden" name="action" value="doNameSearch">
       <div style="display:flex; gap:10px; align-items:flex-end;">

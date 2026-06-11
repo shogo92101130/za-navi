@@ -79,6 +79,11 @@ public class DepartmentSearchLogic implements Logic {
             req.setAttribute("selectedUserIdKeyword", userIdKeyword);
             req.setAttribute("resultLabel", resultLabel);
             req.setAttribute("results", rows);
+        } else if (bId != null || userIdKeyword != null) {
+            // フォームが送信された（=画面初回表示ではない）のに、部門・社員IDのどちらも
+            // 指定されていない場合は、検索条件が無いまま全員を表示してしまわないように
+            // 入力を促すメッセージを出す
+            req.setAttribute("errorMsg", "部門または社員IDを入力してください。");
         }
         return "/WEB-INF/jsp/departmentSearch.jsp";
     }

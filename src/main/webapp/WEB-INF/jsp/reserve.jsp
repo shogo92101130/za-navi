@@ -22,6 +22,17 @@
   // stage → 番号マッピング（ステージバー用）
   int stageNum = "base".equals(stage) ? 1 : "floor".equals(stage) ? 2 : "area".equals(stage) ? 3 : 4;
   SeatsDAO _sdaoRsv = new SeatsDAO();
+
+  // 一つ前のステージへ戻るリンク（座席→エリア→フロア→拠点の順に一段階ずつ戻る）
+  String backUrl = null;
+  if ("floor".equals(stage)) {
+      backUrl = ctx + "/ControlServlet?action=reserve";
+  } else if ("area".equals(stage)) {
+      backUrl = ctx + "/ControlServlet?action=reserve&stage=floor&base=" + java.net.URLEncoder.encode(selBase, "UTF-8");
+  } else if ("seat".equals(stage)) {
+      backUrl = ctx + "/ControlServlet?action=reserve&stage=area&base=" + java.net.URLEncoder.encode(selBase, "UTF-8")
+              + "&floor=" + java.net.URLEncoder.encode(selFloor, "UTF-8");
+  }
 %>
 
 <div class="container">
@@ -95,6 +106,23 @@
     <!-- ═══════════ フロアステージ ═══════════ -->
     <% } else if ("floor".equals(stage)) { %>
       <p style="color:#757575; margin-bottom:16px;">フロアを選んでください。</p>
+
+      <!-- 選択した拠点の画像（管理者の代理予約で拠点選択時に表示されるものと同じ） -->
+      <%
+        String _rSelBase = _sdaoRsv.getOfficeImage(selBase);
+        String _iSelBase = (_rSelBase != null) ? _rSelBase : ("office_" + selBase + ".png");
+      %>
+      <div style="margin-bottom:16px;">
+        <img src="<%= ctx %>/images/<%= _iSelBase %>" alt="<%= selBase %>のオフィス"
+             style="max-width:100%; border:1px solid #ECEFF1; border-radius:8px; display:block;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="map-placeholder" style="display:none;">
+          <p class="ph-title">拠点画像が未設定です</p>
+          <code><%= _iSelBase %></code>
+          <p class="ph-hint">このファイルを images/ フォルダに配置すると自動で表示されます</p>
+        </div>
+      </div>
+
       <div class="occ-grid">
       <%
         List<Map<String, Object>> items = (List<Map<String, Object>>) request.getAttribute("items");
@@ -273,8 +301,9 @@
              String hoverInfo = (udept != null && !udept.isEmpty()) ? (udept + " " + uname) : uname;
         %>
           <% if (!occupied) { %>
-            <!-- 緑ボタン：押すと予約完了 -->
-            <button type="submit" name="seatId" value="<%= s.getSeatId() %>" class="seat-btn available">
+            <!-- 緑ボタン：押すと最終確認ダイアログを表示し、OKで予約確定 -->
+            <button type="submit" name="seatId" value="<%= s.getSeatId() %>" class="seat-btn available"
+                    onclick="return confirmReserve('<%= selBase %>', '<%= selFloor %>', '<%= selArea %>', '<%= s.getSeatName() %>', '<%= selectedDate %>');">
               <span class="seat-id"><%= s.getSeatName() %></span>
               <span class="seat-user">空き</span>
             </button>
@@ -292,6 +321,15 @@
       </form>
 
       <script>
+        // 座席ボタン押下時の最終確認ダイアログ
+        function confirmReserve(base, floor, area, seatName, date) {
+          return confirm(
+            date + " に\n" +
+            base + " " + floor + " " + area + " の " + seatName + " の座席を予約します。\n" +
+            "よろしいですか？"
+          );
+        }
+
         // 日付プルダウンを変更すると画面が再読み込みされてメモが消えてしまうため、
         // 切り替え前の入力内容を一時保存しておき、再読み込み後に書き戻す。
         // ※ select.form.submit() はブラウザ標準のメソッド呼び出しで "submit" イベントが
@@ -318,7 +356,10 @@
 
     <% } %>
 
-    <div style="margin-top:24px;">
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <% if (backUrl != null) { %>
+      <a href="<%= backUrl %>" class="btn btn-secondary">&larr; 前のステップへ戻る</a>
+      <% } %>
       <a href="<%= ctx %>/ControlServlet?action=<%= menuAction %>" class="btn btn-secondary">&larr; メニューへ戻る</a>
     </div>
   </div>

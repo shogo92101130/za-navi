@@ -54,7 +54,7 @@
       </div>
     </div>
 
-    <form action="<%= ctx %>/ControlServlet" method="post" id="adminReserveForm">
+    <form action="<%= ctx %>/ControlServlet" method="post" id="adminReserveForm" onsubmit="return confirmAdminReserve();">
       <input type="hidden" name="action" value="doAdminReserve">
       <input type="hidden" name="mode"   value="individual" id="modeInput">
 
@@ -159,7 +159,7 @@
         <div class="filter-row">
           <div class="form-group">
             <label>予約日</label>
-            <select name="date">
+            <select name="date" onchange="reloadWith('date', this.value)">
               <% if (dates != null) for (String d : dates) { %>
               <option value="<%= d %>" <%= d.equals(selDate) ? "selected" : "" %>><%= d %></option>
               <% } %>
@@ -204,8 +204,8 @@
           String dispImage = null;
           String dispLabel = "";
           if (hasSelArea && hasSelFloor && hasSelBase) {
-              // エリア画像：命名規則から期待ファイル名を生成（例: office_三田_1F_A.png）
-              dispImage = "office_" + selBase + "_" + selFloor + "_" + selArea + ".png";
+              // エリア画像：命名規則から期待ファイル名を生成（例: office_mita_1F_A.png）
+              dispImage = _sdao.getExpectedAreaImage(selBase, selFloor, selArea);
               dispLabel = "エリアマップ画像が未設定です";
           } else if (hasSelBase) {
               // フロア画像：登録済み名を優先、未登録なら命名規則で生成
@@ -304,6 +304,18 @@ var ACCOUNTS = [
 <%   }
    } %>
 ];
+
+// 座席IDから座席名を引けるようにしておく（最終確認ダイアログ表示用）
+var SEATS = {
+<% if (areaSeats != null) {
+     boolean first = true;
+     for (Seat s : areaSeats) {
+       if (!first) { %>,<% }
+       first = false;
+%>  "<%= s.getSeatId() %>": "<%= s.getSeatName() %>"
+<%   }
+   } %>
+};
 
 var selectedIndividual = null;   // 個人モード：1名のみ
 var selectedMeeting = {};        // 会議モード：userId をキーにした複数名
@@ -575,6 +587,30 @@ var ADMIN_RESERVE_SCROLL_KEY = 'adminReserveScrollY';
     window.scrollTo(0, parseInt(saved, 10));
   });
 })();
+
+// 「選択した席で予約する」押下時の最終確認ダイアログ
+function confirmAdminReserve() {
+  var modeVal = document.getElementById('modeInput').value;
+  var seatNames = [];
+  document.querySelectorAll('input[name="seatIds"]:checked').forEach(function(cb) {
+    seatNames.push(SEATS[cb.value] || cb.value);
+  });
+  if (seatNames.length === 0) return true; // 未選択時はサーバー側のエラーメッセージに任せる
+
+  var personNames = (modeVal === 'individual')
+      ? (selectedIndividual ? [selectedIndividual.name] : [])
+      : Object.keys(selectedMeeting).map(function(uid) { return selectedMeeting[uid].name; });
+
+  var dateVal = document.querySelector('[name=date]') ? document.querySelector('[name=date]').value : '';
+  var place = '<%= selBase %> <%= selFloor %> <%= selArea %>';
+
+  return confirm(
+    dateVal + " に\n" +
+    personNames.join('、') + " を\n" +
+    place + " の " + seatNames.join('、') + " の座席で予約します。\n" +
+    "よろしいですか？"
+  );
+}
 
 function reloadWith(paramName, value) {
   sessionStorage.setItem(ADMIN_RESERVE_SCROLL_KEY, String(window.scrollY));

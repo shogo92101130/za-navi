@@ -40,8 +40,9 @@
       <p style="font-size:12px; color:#757575; margin-bottom:10px;">管理者の方はこちら</p>
       <form action="<%= request.getContextPath() %>/ControlServlet" method="post">
         <input type="hidden" name="action" value="doLogin">
+        <input type="hidden" name="loginType" value="admin">
         <div class="form-group" style="margin-bottom:8px;">
-          <input type="text" name="userId" placeholder="管理者ID（例: admin001）" required>
+          <input type="text" name="userId" placeholder="管理者ID（例: 1001）" required>
         </div>
         <div class="form-group" style="margin-bottom:12px;">
           <input type="password" name="password" placeholder="パスワード" required>
@@ -56,7 +57,7 @@
          本番環境（実際のデータベースに繋いだ後）では、ログイン情報を画面に表示するのはセキュリティ上NGなので、
          この <div> ごと削除すること。 ▼▼▼ --%>
     <div style="margin-top:16px; font-size:11px; color:#aaa; text-align:center;">
-      ※ デモ: user001/pass001 ・ admin001/admin001
+      ※ デモ: 1002/pass1002（一般） ・ 1001/pass1001（管理者）
     </div>
     <%-- ▲▲▲ 差し替え注意ここまで ▲▲▲ --%>
   </div>

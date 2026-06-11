@@ -27,6 +27,13 @@ public class NameSearchLogic implements Logic {
         String keyword = req.getParameter("keyword");
 
         if (keyword != null) {
+            req.setAttribute("keyword", keyword);
+
+            if (keyword.trim().isEmpty()) {
+                // 何も入力せずに検索すると全員がヒットしてしまい一覧の意味がないため、
+                // 入力を促すメッセージを出して検索は行わない
+                req.setAttribute("errorMsg", "氏名を入力してください。");
+            } else {
             // 検索実行
             AccountsDAO accDAO = new AccountsDAO();
             LocationsDAO locDAO = new LocationsDAO();
@@ -58,8 +65,8 @@ public class NameSearchLogic implements Logic {
                 row.put("seat", seat);
                 rows.add(row);
             }
-            req.setAttribute("keyword", keyword);
             req.setAttribute("results", rows);
+            }
         }
         return "/WEB-INF/jsp/nameSearch.jsp";
     }

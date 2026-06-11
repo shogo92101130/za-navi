@@ -18,6 +18,10 @@
   <div class="card">
     <h2>部門検索</h2>
 
+    <% if (request.getAttribute("errorMsg") != null) { %>
+    <div class="alert alert-danger"><%= request.getAttribute("errorMsg") %></div>
+    <% } %>
+
     <%
       List<Location> departments = (List<Location>) request.getAttribute("departments");
       String selectedBId = (String) request.getAttribute("selectedBId");
