@@ -74,7 +74,6 @@
   tr:nth-child(even) td { background: #F5F5F5; }
   /* ── ステータスバッジ ── */
   .fixed { display:inline-block; background:#C8E6C9; color:#1B5E20; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
-  .revert{ display:inline-block; background:#FFE0B2; color:#E65100; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
   .ok    { display:inline-block; background:#E3F2FD; color:#0D47A1; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
   /* ── ノート ── */
   .note {
@@ -107,7 +106,6 @@
     作成日：2026-06-11<br>
     対象リポジトリ：za-navi（DB接続版 / Tomcat 9 / Java 21 / MySQL zaseki1）<br>
     凡例：<span class="fixed">対応済み</span> 修正してコミット済み
-    <span class="revert">撤回</span> 一度実装したが指示により取り消し
     <span class="ok">問題なし</span> 確認の結果バグなし
   </div>
 </div>
@@ -129,6 +127,18 @@
   <td>「管理者ログイン」フォームから一般社員のID/パスワードでログインすると、管理者メニューには入れないものの、そのまま一般メニューにログインできてしまっていた</td>
   <td><code>LoginLogic.java</code><br>doLogin()</td>
   <td>loginType=adminのとき <code>account.getAdmin() != 1</code> なら「管理者権限がありません」エラーを表示してログイン拒否するチェックを追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>コンパイルエラー「res cannot be resolved」：ログイン成功後に画面遷移用の<code>sendRedirect</code>を呼べなかった</td>
+  <td><code>LoginLogic.java</code><br>doLogin()</td>
+  <td>メソッドのシグネチャを<code>doLogin(req, res)</code>に変更し<code>throws IOException</code>を追加して修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>ログイン画面のデモ用ID/パスワード表示がDB移行前の形式（<code>user001 / pass001</code>）のままで、実際のDB（数値ID）と一致せずログインできなかった</td>
+  <td><code>login.jsp</code></td>
+  <td>デモ表示を一般ユーザー <code>1002 / pass1002</code>、管理者 <code>1001 / pass1001</code> に修正</td>
 </tr>
 </tbody>
 </table>
@@ -156,6 +166,18 @@
   <td><code>ControlServlet.showMenu()</code></td>
   <td>出社・座席確定者の氏名＋部署名＋拠点＋座席の明細リスト（折りたたみ表示）を追加</td>
 </tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>共通ヘッダー部分の固定文言が文字化けして表示されていた</td>
+  <td><code>header.jspf</code> /<br><code>headerAdmin.jspf</code></td>
+  <td><code>&lt;%@ page pageEncoding="UTF-8" %&gt;</code> を追加して文字コードを明示</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>各画面の「メニューへ戻る」リンクが一般メニュー（menu）固定で、管理者でログインしていても管理者メニューに戻れなかった</td>
+  <td>各JSPの戻るリンク</td>
+  <td>ログイン種別に応じて管理者は<code>adminMenu</code>、一般は<code>menu</code>に遷移するよう修正</td>
+</tr>
 </tbody>
 </table>
 
@@ -172,15 +194,45 @@
 </tr>
 <tr>
   <td><span class="fixed">対応済み</span></td>
-  <td>行先（出社/出張/在宅）の選択をミスすると、最初のメニューからやり直すしかなかった</td>
+  <td>外部キー制約違反：在宅・出張は<code>seat_id=0</code>で登録するが、<code>reservations.seat_id</code>に<code>seats(seat_id)</code>へのFK制約があり登録時にエラーになった</td>
+  <td><code>reservations</code> テーブルの<br>FK制約</td>
+  <td>FK制約を削除（migration_2026-06-08_drop_seat_fk.sql）して登録できるよう修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>行先（出社/出張/在宅）の選択をミスすると、各ステージの「戻る」が常に最初のメニュー（ホーム）に戻ってしまい、やり直しに手間がかかった</td>
   <td><code>locationRegist.jsp</code> /<br><code>businessTrip.jsp</code> /<br><code>remoteWork.jsp</code></td>
-  <td>各ステージに「ひとつ前へ戻る」ボタンを追加</td>
+  <td>各ステージで一段階だけ前のステージに戻れる「ひとつ前へ戻る」ボタンを追加</td>
 </tr>
 <tr>
   <td><span class="fixed">対応済み</span></td>
   <td>在宅・出張の日付選択で、すでに予約済みの日かどうかが分からなかった</td>
   <td><code>LocationRegistLogic.java</code> 関連JSP</td>
   <td>日付プルダウンに既存予約の有無を示すラベルを追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>在宅登録のメモ入力が一覧画面の小さな入力欄で分かりにくく、出張登録とUIが揃っていなかった</td>
+  <td><code>remoteWork.jsp</code></td>
+  <td>出張登録と同様、専用画面でメモを入力してから登録する流れに統一</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>出張先・メモの表示が「出張先／メモ」のような形式で分かりにくかった</td>
+  <td>行先登録関連JSP</td>
+  <td>「出張先（メモ：補足内容）」の形式に表示を変更</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>行先登録完了後、管理者でログインしていてもホーム（一般メニュー）に戻されてしまっていた</td>
+  <td><code>LocationRegistLogic.java</code><br>saveAndGoMenu</td>
+  <td>完了メッセージをセッションに保存した上でリダイレクトし、管理者は管理者メニューに戻るよう修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>在宅・出張の対象日選択が当日のみで、座席予約のように先の日付を選べなかった</td>
+  <td><code>LocationRegistLogic.java</code></td>
+  <td>座席予約と同じく今日から2週間先まで選択できるよう統一</td>
 </tr>
 </tbody>
 </table>
@@ -213,6 +265,18 @@
   <td>新しいオフィスを追加した直後はフロア・エリア画像ファイルが存在せず、画像が壊れて表示された</td>
   <td><code>reserve.jsp</code> /<br><code>SeatsDAO.getExpectedFloorImage / getExpectedAreaImage</code></td>
   <td><code>&lt;img onerror&gt;</code> でファイル未配置時にプレースホルダー（期待ファイル名表示）へ切替</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>JSPコンパイルエラー「items cannot be resolved to a variable」が発生し画面が表示できなかった</td>
+  <td><code>reserve.jsp</code></td>
+  <td>未宣言のまま使用していた<code>items</code>変数の宣言を追加して修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>予約日の変更プルダウンを切り替えても、入力済みのメモが保存されずに消えてしまっていた（<code>&lt;select onchange="this.form.submit()"&gt;</code>では<code>submit</code>イベントが発火せず保存処理が動かない）</td>
+  <td><code>reserve.jsp</code></td>
+  <td>専用の<code>submitReserveDateForm(this)</code>関数でメモを保存してからフォーム送信するよう修正</td>
 </tr>
 </tbody>
 </table>
@@ -333,12 +397,6 @@
   <td>①その日の予約済みuserIdを<code>resDAO.findByDate()</code>で1回取得しSet判定に変更（社員ごとの<code>findActiveByUserAndDate()</code>呼び出しを排除）<br>②社員一覧を<code>accDAO.findAll()</code>で1回取得しuserId→Accountマップとして使い回し（使用中座席ごとの<code>findById()</code>呼び出しを排除）</td>
 </tr>
 <tr>
-  <td><span class="revert">撤回</span></td>
-  <td>上記2点を直してもまだ重いという指摘を受け、<code>DBUtil.getConnection()</code>がDAO呼び出しのたびに新規TCP接続・認証を行っていることが根本原因と判明</td>
-  <td><code>DBUtil.java</code></td>
-  <td><code>ConcurrentLinkedQueue</code>とJDK Proxyによるコネクションプールを実装し接続を再利用するよう変更したが、利用者の指示により本変更は撤回し、元のシンプルな<code>DriverManager.getConnection()</code>方式に戻した</td>
-</tr>
-<tr>
   <td><span class="fixed">対応済み</span></td>
   <td>座席未選択などのバリデーションエラーで画面に戻ると、入力済みの検索条件（部署・氏名）が消えてしまっていた</td>
   <td><code>AdminReserveLogic.java</code><br>doReserve() → showForm()</td>
@@ -356,6 +414,24 @@
   <td><code>adminReserve.jsp</code></td>
   <td>確定ボタン押下時に内容確認のポップアップを表示するよう追加</td>
 </tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>個人モードの代理予約で座席を複数選択できてしまい、1名に対して複数席が割り当てられることがあった</td>
+  <td><code>adminReserve.jsp</code> /<br><code>AdminReserveLogic.java</code><br>doReserve()</td>
+  <td>個人モードでは座席をラジオボタン的に1つしか選べないようUIを修正し、サーバー側にも複数選択時のエラーチェックを追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>重大バグ：個人代理予約で対象社員を選択せずに登録すると、<code>userId=null</code>の予約レコードが作成されてしまい、以後すべてのユーザーの「予約確認」画面でNullPointerExceptionが発生していた</td>
+  <td><code>AdminReserveLogic.java</code><br>doReserve()</td>
+  <td>対象社員が未選択の場合は予約を作成せずエラーメッセージを表示するバリデーションを追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>拠点・フロア・エリアを切り替えるたびにページが最上部に戻ってしまい、操作のたびにスクロールし直す必要があった</td>
+  <td><code>adminReserve.jsp</code></td>
+  <td>送信前のスクロール位置を<code>sessionStorage</code>に保存し、画像読み込み完了後に元の位置へ復元するよう修正</td>
+</tr>
 </tbody>
 </table>
 
@@ -370,6 +446,24 @@
   <td><code>seatStatus.jsp</code> /<br><code>ControlServlet.showSeatStatus()</code></td>
   <td><code>SeatsDAO.getOfficeImage(拠点, フロア)</code>を呼び出し、フロア専用画像を優先表示するよう修正</td>
 </tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>エリア名が「エリアエリア」のように二重表示されていた</td>
+  <td><code>seatStatus.jsp</code></td>
+  <td>エリア名を組み立てる際の重複文字列を削除</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>使用中の座席にカーソルを合わせても、誰が使っているか（氏名・部署）が分からなかった</td>
+  <td><code>ControlServlet.showSeatStatus()</code></td>
+  <td>座席ID→利用者の氏名・部署名のマップを作成し、ホバーのツールチップと可視テキストの両方で表示するよう修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>座席利用状況を確認できる日付の範囲が狭く、過去の状況を遡って確認できなかった</td>
+  <td><code>ControlServlet.showSeatStatus()</code></td>
+  <td>確認可能な日付範囲を「今日の2週間前〜2週間後」に拡張（実際に予約できる範囲は今日〜2週間後のまま）</td>
+</tr>
 </tbody>
 </table>
 
@@ -378,12 +472,6 @@
 <table>
 <thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
 <tbody>
-<tr>
-  <td><span class="revert">撤回</span></td>
-  <td>新規オフィスのフロアマップ画像をDB管理（office_imagesテーブル）にする方式へ変更したところ、テーブル未作成（migration未適用）の環境ではマスタ更新・代理予約の両画面がエラーになった</td>
-  <td><code>SeatsDAO.java</code> /<br>office_images関連の<br>SQL・migration</td>
-  <td>office_imagesテーブル方式を全廃し、<code>SeatsDAO.OFFICE_IMAGES</code>によるハードコーディング方式に戻した（関連コード・SQL・migrationを削除）</td>
-</tr>
 <tr>
   <td><span class="fixed">対応済み</span></td>
   <td>座席一覧が全件表示のみで、特定オフィス・フロアだけを見る手段が無かった</td>
@@ -397,16 +485,16 @@
   <td><code>&lt;img onerror&gt;</code>でプレースホルダー（期待ファイル名表示）に切替</td>
 </tr>
 <tr>
-  <td><span class="revert">撤回</span></td>
-  <td>マスタ更新で新規オフィスを追加すると、画像ファイル名が漢字（例：office_品川.png、office_香川.png）になり命名規則と不一致になっていた</td>
-  <td><code>SeatsDAO.java</code> /<br><code>masterUpdate.jsp</code></td>
-  <td>拠点名をローマ字に変換して画像ファイル名を生成する機能を試作したが、「DBは変更しない」方針との兼ね合いで対応コストに見合わないと判断し、機能ごと撤回（既存6拠点のローマ字登録のみ維持）</td>
-</tr>
-<tr>
   <td><span class="fixed">対応済み</span></td>
   <td>同じ拠点・フロア・エリア・席名の座席を何度でも重複登録でき、一覧に同名の座席が複数存在してしまっていた</td>
   <td><code>MastersDAO.java</code> /<br><code>MasterUpdateLogic.java</code></td>
   <td>追加・更新時に同条件の座席が既に存在するか<code>exists()</code>でチェックし、該当する場合は「すでに存在します」エラーを表示して登録を中止するよう修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>座席の更新・追加・削除や絞り込みのたびにページが最上部に戻ってしまい、一覧の確認位置を見失っていた</td>
+  <td><code>masterUpdate.jsp</code></td>
+  <td>送信前のスクロール位置を<code>sessionStorage</code>に保存し、画像読み込み完了後に元の位置へ復元するよう修正</td>
 </tr>
 </tbody>
 </table>
@@ -439,6 +527,12 @@
   <td>拠点・フロア選択カードに画像が無く、文字だけで分かりにくかった</td>
   <td><code>reserve.jsp</code></td>
   <td>adminReserve.jspと同様、選択カードに画像サムネイルを追加（未登録時はプレースホルダー）</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>フロア・エリア画像のファイル名が日本語（例：office_三田_1F_A.png）とローマ字が混在しており、命名規則が統一されていなかった</td>
+  <td><code>SeatsDAO.java</code><br>OFFICE_IMAGES</td>
+  <td>既存の登録済み画像ファイル名をすべて<code>office_mita_1F_A.png</code>のようなローマ字命名に統一</td>
 </tr>
 </tbody>
 </table>
