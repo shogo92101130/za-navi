@@ -63,8 +63,16 @@ public class AdminReserveLogic implements Logic {
         for (Reservation r : resDAO.findByDate(selectedDate)) {
             reservedUserIds.add(r.getUserId());
         }
+
+        // 社員一覧は1回だけ取得し、userId→Account のマップも作っておく
+        // （後段の「使用中座席の予約者名表示」で1件ずつ findById() すると
+        // 　その日の予約数だけDB接続が発生してしまうため、ここで使い回す）
+        List<Account> allAccounts = accDAO.findAll();
+        Map<String, Account> accountMap = new HashMap<>();
+        for (Account a : allAccounts) accountMap.put(a.getUserId(), a);
+
         List<Map<String, Object>> accountRows = new ArrayList<>();
-        for (Account a : accDAO.findAll()) {
+        for (Account a : allAccounts) {
             if (reservedUserIds.contains(a.getUserId())) continue;
             String bName = deptNameMap.getOrDefault(a.getBId(), "不明");
             Map<String, Object> row = new HashMap<>();
@@ -112,7 +120,7 @@ public class AdminReserveLogic implements Logic {
             Map<Integer, String> seatUserNameMap = new HashMap<>();
             Map<Integer, String> seatUserDeptMap = new HashMap<>();
             for (Map.Entry<Integer, String> e : usage.entrySet()) {
-                Account acc = accDAO.findById(e.getValue());
+                Account acc = accountMap.get(e.getValue());
                 seatUserNameMap.put(e.getKey(), acc != null ? acc.getName() : e.getValue());
                 seatUserDeptMap.put(e.getKey(), acc != null ? deptNameMap.getOrDefault(acc.getBId(), "不明") : "");
             }
