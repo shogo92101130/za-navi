@@ -12,7 +12,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ReserveLogic implements Logic {
 
