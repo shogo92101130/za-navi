@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 13px;
+    color: #212121;
+    background: #fff;
+    padding: 36px 44px;
+    width: 794px;
+  }
+  /* ── 表紙ブロック ── */
+  .cover {
+    border: 2px solid #1565C0;
+    border-radius: 8px;
+    padding: 32px 36px;
+    margin-bottom: 36px;
+  }
+  .cover-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1565C0;
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+  .cover-sub {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+  }
+  .cover-meta { font-size: 12px; color: #666; line-height: 2; }
+  /* ── 見出し ── */
+  h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: #1565C0;
+    padding: 7px 14px;
+    margin: 28px 0 10px;
+    border-radius: 3px;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1565C0;
+    border-left: 4px solid #1565C0;
+    padding-left: 8px;
+    margin: 18px 0 6px;
+  }
+  /* ── テーブル ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    margin-bottom: 14px;
+  }
+  th {
+    background: #1565C0;
+    color: #fff;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  td {
+    padding: 5px 8px;
+    border: 1px solid #CFD8DC;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  tr:nth-child(even) td { background: #F5F5F5; }
+  /* ── ステータスバッジ ── */
+  .fixed { display:inline-block; background:#C8E6C9; color:#1B5E20; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
+  .revert{ display:inline-block; background:#FFE0B2; color:#E65100; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
+  .ok    { display:inline-block; background:#E3F2FD; color:#0D47A1; border-radius:10px; padding:1px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
+  /* ── ノート ── */
+  .note {
+    background: #FFF8E1;
+    border-left: 4px solid #FBC02D;
+    padding: 7px 12px;
+    font-size: 12px;
+    margin: 8px 0 14px;
+    line-height: 1.6;
+  }
+  code {
+    background: #ECEFF1;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: "Consolas","Courier New",monospace;
+    font-size: 11px;
+    color: #C62828;
+  }
+  p { line-height: 1.7; margin-bottom: 6px; }
+  .page-break { margin-top: 32px; border-top: 2px dashed #BDBDBD; padding-top: 24px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ 表紙 ══════════════════ -->
+<div class="cover">
+  <div class="cover-title">座・Navi　不具合修正・改善履歴書</div>
+  <div class="cover-sub">試験要領書（06_試験要領書.pdf）の試験項目 T01〜T12 に対応した開発中の不具合・修正一覧</div>
+  <div class="cover-meta">
+    作成日：2026-06-11<br>
+    対象リポジトリ：za-navi（DB接続版 / Tomcat 9 / Java 21 / MySQL zaseki1）<br>
+    凡例：<span class="fixed">対応済み</span> 修正してコミット済み
+    <span class="revert">撤回</span> 一度実装したが指示により取り消し
+    <span class="ok">問題なし</span> 確認の結果バグなし
+  </div>
+</div>
+
+<h2>1. 本書の目的</h2>
+<p>
+座・Naviの開発中、試験項目 T01〜T12 の各機能を確認・改修する過程で発見された不具合・改善点を、
+「どのファイル・コードが原因だったか」「どんな症状が出たか」「どう直したか」の形で簡潔にまとめたもの。
+試験要領書とあわせて、デグレード確認や類似不具合の再発防止に利用する。
+</p>
+
+<!-- ══════════════════ T01 ══════════════════ -->
+<h2>T01　ログイン・ログアウト</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>「管理者ログイン」フォームから一般社員のID/パスワードでログインすると、管理者メニューには入れないものの、そのまま一般メニューにログインできてしまっていた</td>
+  <td><code>LoginLogic.java</code><br>doLogin()</td>
+  <td>loginType=adminのとき <code>account.getAdmin() != 1</code> なら「管理者権限がありません」エラーを表示してログイン拒否するチェックを追加</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T02 ══════════════════ -->
+<h2>T02　メニュー表示</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>管理者メニューに「座席予約」リンクがあり、行先登録経由の予約導線と重複していた</td>
+  <td><code>adminMenu.jsp</code></td>
+  <td>「座席予約」リンクを削除（行先登録から到達できるため）</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>「同じ部署の本日の出社状況」がバッジの羅列で見づらく、常時表示でメニューが縦に長くなっていた</td>
+  <td><code>adminMenu.jsp</code> /<br><code>ControlServlet.showMenu()</code></td>
+  <td>氏名・拠点・座席のテーブル形式に変更し、デフォルト非表示のトグル開閉式に変更</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>「今後2週間の予約状況」が人数集計のみで、誰がどこにいるか分からなかった</td>
+  <td><code>ControlServlet.showMenu()</code></td>
+  <td>出社・座席確定者の氏名＋部署名＋拠点＋座席の明細リスト（折りたたみ表示）を追加</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T03 ══════════════════ -->
+<h2>T03　行先登録（出社 / 出張 / 在宅）</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>出張・在宅（座席なし＝seat_id=0）を複数人が同日に登録、またはキャンセル済み予約がある日に再登録すると、UNIQUE制約違反でエラーになった</td>
+  <td><code>reservations</code> テーブルの<br>UNIQUE制約 /<br><code>ReservationsDAO.java</code></td>
+  <td>UNIQUE制約を生成列方式に変更し、<code>seat_id=0</code> や <code>cancel_flag=1</code> の行を制約対象外に。既存DB向けmigration（migration_2026-06-08_fix_reservations_unique.sql）を追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>行先（出社/出張/在宅）の選択をミスすると、最初のメニューからやり直すしかなかった</td>
+  <td><code>locationRegist.jsp</code> /<br><code>businessTrip.jsp</code> /<br><code>remoteWork.jsp</code></td>
+  <td>各ステージに「ひとつ前へ戻る」ボタンを追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>在宅・出張の日付選択で、すでに予約済みの日かどうかが分からなかった</td>
+  <td><code>LocationRegistLogic.java</code> 関連JSP</td>
+  <td>日付プルダウンに既存予約の有無を示すラベルを追加</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T04 ══════════════════ -->
+<h2>T04　座席予約（4段階ウィザード）</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>三田1F Aエリアの座席番号が02始まりになっており、実際のフロアの座席表示（01始まり）とズレていた</td>
+  <td><code>seats</code> テーブルのデータ</td>
+  <td>該当座席のseat_nameをDBで直接修正＋既存DB向けmigration（migration_2026-06-10_fix_mita_1f_a_seat01.sql）を追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>座席選択後、確認なしでそのまま予約確定されてしまい、誤クリックでの予約ミスが起きやすかった</td>
+  <td><code>reserve.jsp</code><br>confirmReserve()</td>
+  <td>予約確定ボタン押下時に内容確認のポップアップ（confirm）を表示してから送信するよう変更</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>エリア選択画面で、画像が登録されていない拠点・フロアでは何も表示されず空白になっていた</td>
+  <td><code>reserve.jsp</code> /<br><code>SeatsDAO.java</code></td>
+  <td>専用画像が無い場合は座席の空き状況を緑/赤で示す動的グリッドにフォールバック表示するよう変更</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>新しいオフィスを追加した直後はフロア・エリア画像ファイルが存在せず、画像が壊れて表示された</td>
+  <td><code>reserve.jsp</code> /<br><code>SeatsDAO.getExpectedFloorImage / getExpectedAreaImage</code></td>
+  <td><code>&lt;img onerror&gt;</code> でファイル未配置時にプレースホルダー（期待ファイル名表示）へ切替</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T05 ══════════════════ -->
+<h2>T05　予約確認・キャンセル</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>一度キャンセルした予約（cancel_flag=1の行）が残っているせいで、同じ日にもう一度予約しようとするとUNIQUE制約エラーになった</td>
+  <td><code>reservations</code> テーブルの<br>UNIQUE制約</td>
+  <td>T03と同じ生成列方式のUNIQUE制約変更で解消（cancel_flag=1の行は制約対象外）</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T06 ══════════════════ -->
+<h2>T06　氏名検索</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>キーワード未入力のまま検索すると全社員が表示され、意図せず大量データが返ってきた</td>
+  <td><code>NameSearchLogic.java</code> /<br><code>nameSearch.jsp</code></td>
+  <td>未入力で検索した場合に警告メッセージを表示するよう変更</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>氏名でしか絞り込めず、社員IDでの検索ができなかった</td>
+  <td><code>AccountsDAO.java</code></td>
+  <td><code>search()</code>に社員ID部分一致条件を追加</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T07 ══════════════════ -->
+<h2>T07　部門検索</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>氏名検索と同様、部署のみ未選択で検索すると全件表示されてしまっていた</td>
+  <td><code>DepartmentSearchLogic.java</code> /<br><code>departmentSearch.jsp</code></td>
+  <td>未入力時に警告メッセージを表示するよう変更</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>部署選択のみで、社員IDによる絞り込みができなかった</td>
+  <td><code>DepartmentSearchLogic.java</code></td>
+  <td>社員IDキーワードでの絞り込み条件を追加</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T08 ══════════════════ -->
+<h2>T08　管理者権限制御</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>一般社員アカウントが管理者ログインフォームから認証を通過してしまっていた（T01と同一原因）</td>
+  <td><code>LoginLogic.java</code></td>
+  <td>loginType=adminのとき非管理者を弾くチェックを追加（T01参照）</td>
+</tr>
+<tr>
+  <td><span class="ok">問題なし</span></td>
+  <td>未ログイン、または一般ユーザーが管理機能のURL（adminMenu等）に直接アクセスした場合の挙動を確認</td>
+  <td><code>ControlServlet.process()</code></td>
+  <td>セッションが無い場合はlogin画面へリダイレクトする実装が初回コミットから機能しており、修正不要だった</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T09 ══════════════════ -->
+<h2>T09　代理予約（管理者機能）</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>拠点・フロア・エリアを切り替えるとGETパラメータの日本語が文字化けし、選択内容が正しく取得できなかった</td>
+  <td><code>AdminReserveLogic.java</code> /<br>絞り込みフォーム</td>
+  <td>絞り込みフォームをGETからPOSTに変更し文字化けを解消</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>会議用代理予約で、参加者数より多い座席数を選択できてしまっていた</td>
+  <td><code>AdminReserveLogic.java</code><br>doReserve()</td>
+  <td>参加者数と選択座席数が一致しない場合にエラーメッセージを表示するチェックを追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>拠点・フロア・エリアを変更すると、入力中の検索条件・選択中の対象社員・モード（個人/会議）がリセットされ、個人モードに戻ってしまっていた</td>
+  <td><code>AdminReserveLogic.java</code><br>showForm()</td>
+  <td>検索条件・選択対象者・モードもPOSTで引き継ぎ、画面再表示時に復元するよう修正（reloadWith()）</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>参加者検索が氏名・部署のみで、社員IDによる絞り込みができなかった</td>
+  <td><code>AdminReserveLogic.java</code></td>
+  <td>社員ID部分一致での絞り込みを追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>部署名取得のN+1クエリにより、フロア選択のプルダウンが表示されないことがあり、ページ表示も遅かった</td>
+  <td><code>AdminReserveLogic.java</code><br>showForm()</td>
+  <td>部署一覧（bId→bName）を1回だけ取得してMap化し使い回すよう修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>拠点・フロア・エリアを選択してから座席マップ画像が表示されるまで、ありえないほどラグがあった（① まず社員ごとの予約チェック、② 次に使用中座席ごとの社員情報取得、の2つのN+1クエリが原因）</td>
+  <td><code>AdminReserveLogic.java</code><br>showForm()</td>
+  <td>①その日の予約済みuserIdを<code>resDAO.findByDate()</code>で1回取得しSet判定に変更（社員ごとの<code>findActiveByUserAndDate()</code>呼び出しを排除）<br>②社員一覧を<code>accDAO.findAll()</code>で1回取得しuserId→Accountマップとして使い回し（使用中座席ごとの<code>findById()</code>呼び出しを排除）</td>
+</tr>
+<tr>
+  <td><span class="revert">撤回</span></td>
+  <td>上記2点を直してもまだ重いという指摘を受け、<code>DBUtil.getConnection()</code>がDAO呼び出しのたびに新規TCP接続・認証を行っていることが根本原因と判明</td>
+  <td><code>DBUtil.java</code></td>
+  <td><code>ConcurrentLinkedQueue</code>とJDK Proxyによるコネクションプールを実装し接続を再利用するよう変更したが、利用者の指示により本変更は撤回し、元のシンプルな<code>DriverManager.getConnection()</code>方式に戻した</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>座席未選択などのバリデーションエラーで画面に戻ると、入力済みの検索条件（部署・氏名）が消えてしまっていた</td>
+  <td><code>AdminReserveLogic.java</code><br>doReserve() → showForm()</td>
+  <td>エラー時もリクエストパラメータを<code>req.setAttribute</code>で引き継ぐよう修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>日付を変更しても対象社員リストが更新されず、すでに予約済みの社員が選択候補に残り続けていた</td>
+  <td><code>AdminReserveLogic.java</code><br>showForm()</td>
+  <td>選択中の日付に基づいて対象社員リスト（reservedUserIds除外）を再取得するよう修正</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>代理予約確定前に確認ダイアログが無く、誤って確定しやすかった</td>
+  <td><code>adminReserve.jsp</code></td>
+  <td>確定ボタン押下時に内容確認のポップアップを表示するよう追加</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T10 ══════════════════ -->
+<h2>T10　座席利用状況（管理者機能）</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>フロアマップ画像の取得が拠点名のみで行われており、フロアごとに画像が違う拠点でもフロア選択が画像に反映されなかった</td>
+  <td><code>seatStatus.jsp</code> /<br><code>ControlServlet.showSeatStatus()</code></td>
+  <td><code>SeatsDAO.getOfficeImage(拠点, フロア)</code>を呼び出し、フロア専用画像を優先表示するよう修正</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T11 ══════════════════ -->
+<h2>T11　マスタ更新（管理者機能）</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="revert">撤回</span></td>
+  <td>新規オフィスのフロアマップ画像をDB管理（office_imagesテーブル）にする方式へ変更したところ、テーブル未作成（migration未適用）の環境ではマスタ更新・代理予約の両画面がエラーになった</td>
+  <td><code>SeatsDAO.java</code> /<br>office_images関連の<br>SQL・migration</td>
+  <td>office_imagesテーブル方式を全廃し、<code>SeatsDAO.OFFICE_IMAGES</code>によるハードコーディング方式に戻した（関連コード・SQL・migrationを削除）</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>座席一覧が全件表示のみで、特定オフィス・フロアだけを見る手段が無かった</td>
+  <td><code>masterUpdate.jsp</code> /<br><code>MasterUpdateLogic.java</code></td>
+  <td>拠点・フロアの絞り込みドロップダウンを追加し、選択したフロアのマップ画像を表示するよう変更</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>新規オフィス追加直後はフロアマップ画像が存在せず、画像が壊れて表示された</td>
+  <td><code>masterUpdate.jsp</code></td>
+  <td><code>&lt;img onerror&gt;</code>でプレースホルダー（期待ファイル名表示）に切替</td>
+</tr>
+<tr>
+  <td><span class="revert">撤回</span></td>
+  <td>マスタ更新で新規オフィスを追加すると、画像ファイル名が漢字（例：office_品川.png、office_香川.png）になり命名規則と不一致になっていた</td>
+  <td><code>SeatsDAO.java</code> /<br><code>masterUpdate.jsp</code></td>
+  <td>拠点名をローマ字に変換して画像ファイル名を生成する機能を試作したが、「DBは変更しない」方針との兼ね合いで対応コストに見合わないと判断し、機能ごと撤回（既存6拠点のローマ字登録のみ維持）</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>同じ拠点・フロア・エリア・席名の座席を何度でも重複登録でき、一覧に同名の座席が複数存在してしまっていた</td>
+  <td><code>MastersDAO.java</code> /<br><code>MasterUpdateLogic.java</code></td>
+  <td>追加・更新時に同条件の座席が既に存在するか<code>exists()</code>でチェックし、該当する場合は「すでに存在します」エラーを表示して登録を中止するよう修正</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ T12 ══════════════════ -->
+<h2>T12　フロアマップ画像（全画面横断確認）</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>三田・芝浦・中野はいずれも1F/2Fでレイアウトが異なるが、フロアを切り替えても拠点共通の同じ画像のままだった</td>
+  <td><code>SeatsDAO.java</code><br>OFFICE_IMAGES</td>
+  <td>「拠点名_フロア名」キーの専用画像を追加し、<code>getOfficeImage(拠点, フロア)</code>でフロア専用画像を優先するよう実装</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>エリアを選択しても専用画像が無く、常に動的グリッド表示になっていた</td>
+  <td><code>SeatsDAO.java</code></td>
+  <td>「拠点_フロア_エリア」キーの画像（18枚分）に対応する<code>getAreaImage()</code>を追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>画像ファイルが存在しない拠点・フロア・エリアでは、壊れた画像アイコンがそのまま表示されていた</td>
+  <td><code>reserve.jsp</code> /<br><code>adminReserve.jsp</code> /<br><code>masterUpdate.jsp</code></td>
+  <td>全画面で<code>&lt;img onerror&gt;</code>＋プレースホルダーdivに統一し、未配置時は期待ファイル名を表示するよう統一</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>拠点・フロア選択カードに画像が無く、文字だけで分かりにくかった</td>
+  <td><code>reserve.jsp</code></td>
+  <td>adminReserve.jspと同様、選択カードに画像サムネイルを追加（未登録時はプレースホルダー）</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ══════════════════ 付録 ══════════════════ -->
+<h2>付録　コード品質（Eclipse警告）の修正</h2>
+<table>
+<thead><tr><th style="width:60px;">状態</th><th style="width:230px;">症状</th><th style="width:200px;">原因（ファイル・処理）</th><th>対応内容</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>Eclipseの問題タブに「The serializable class ControlServlet does not declare a static final serialVersionUID field」という黄色警告が出ていた</td>
+  <td><code>ControlServlet.java</code></td>
+  <td><code>private static final long serialVersionUID = 1L;</code> を追加</td>
+</tr>
+<tr>
+  <td><span class="fixed">対応済み</span></td>
+  <td>使われていないimport（<code>java.util.stream.Collectors</code>）に対する警告が出ていた</td>
+  <td><code>ReserveLogic.java</code></td>
+  <td>未使用importを削除</td>
+</tr>
+</tbody>
+</table>
+
+<div class="note">
+<strong>備考：</strong>本書に記載のmigrationファイルは <code>docs/db/</code> 配下に格納されている。新しい環境にDBを構築する場合は <code>za_navi_schema.sql</code> 適用後、必要に応じて各migrationを実行すること。
+</div>
+
+</body>
+</html>
