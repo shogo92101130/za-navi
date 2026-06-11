@@ -53,10 +53,19 @@ public class AdminReserveLogic implements Logic {
         // 「○○部署の○○」形式で検索・表示できるように、社員一覧に部署名を付与
         // すでにその日の予定（出社・在宅・出張のいずれか）が入っている人は、
         // 代理予約しても結局エラーになるため、検索結果の時点で除外しておく
+        //
+        // 社員1人ごとに findActiveByUserAndDate() でDB問い合わせすると
+        // 社員数分のDB接続が毎回発生し、拠点・フロア・エリアを切り替えるたびに
+        // ページ全体が重くなっていたため、その日の予約済みuserIdを1回のクエリで
+        // まとめて取得し、Setで判定する。
         ReservationsDAO resDAO = new ReservationsDAO();
+        Set<String> reservedUserIds = new HashSet<>();
+        for (Reservation r : resDAO.findByDate(selectedDate)) {
+            reservedUserIds.add(r.getUserId());
+        }
         List<Map<String, Object>> accountRows = new ArrayList<>();
         for (Account a : accDAO.findAll()) {
-            if (resDAO.findActiveByUserAndDate(a.getUserId(), selectedDate) != null) continue;
+            if (reservedUserIds.contains(a.getUserId())) continue;
             String bName = deptNameMap.getOrDefault(a.getBId(), "不明");
             Map<String, Object> row = new HashMap<>();
             row.put("userId", a.getUserId());
