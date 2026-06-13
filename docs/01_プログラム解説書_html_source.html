@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>座・Navi プログラム解説書</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  body {
+    font-family: "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 12px;
+    line-height: 1.65;
+    color: #263238;
+    width: 794px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 22px;
+    color: #00695C;
+    border-bottom: 3px solid #00897B;
+    padding-bottom: 6px;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 17px;
+    color: #fff;
+    background: #00897B;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-top: 28px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 14px;
+    color: #00695C;
+    border-bottom: 2px solid #B2DFDB;
+    padding-bottom: 3px;
+    margin-top: 20px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 12.5px;
+    color: #00695C;
+    margin-top: 14px;
+  }
+  p { margin: 6px 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0 16px;
+    font-size: 11px;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #B0BEC5;
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #E0F2F1;
+    color: #00695C;
+    font-weight: 700;
+  }
+  tr:nth-child(even) td { background: #FAFAFA; }
+  code {
+    background: #ECEFF1;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: "Consolas", monospace;
+    font-size: 11px;
+  }
+  pre {
+    background: #263238;
+    color: #ECEFF1;
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 10.5px;
+    line-height: 1.5;
+    page-break-inside: avoid;
+  }
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+  }
+  blockquote {
+    border-left: 4px solid #FFB300;
+    background: #FFF8E1;
+    margin: 10px 0;
+    padding: 6px 12px;
+    color: #5D4037;
+    page-break-inside: avoid;
+  }
+  hr {
+    border: none;
+    border-top: 2px solid #ECEFF1;
+    margin: 24px 0;
+  }
+  ul, ol { margin: 6px 0; padding-left: 24px; }
+  li { margin: 2px 0; }
+  a { color: #00897B; }
+</style>
+</head>
+<body>
+<h1>座・Navi プログラム解説書（初学者向け・最新版）</h1>
+<p>このドキュメントは「座・Navi（Za-Navi）」のプログラムが、それぞれ何をしているのか・どこをどう直すと何が変わるのかをまとめたものです。
+チームメンバーが「自分はどのファイルを見ればいいか」「ここを直したら何が起きるか」を理解する手助けになることを目指しています。</p>
+<blockquote>
+<p>📌 <strong>このバージョンの更新点</strong>: データの保存先が「Javaコード内のモックデータ（Arrays.asList）」から
+<strong>MySQL（データベース）</strong> に変わりました。全体の流れ・DAOの説明・Q&amp;Aを最新のコードに合わせて更新し、
+画面一覧やデータベース構成など「表で全体を見渡せる」資料を追加しています。</p>
+</blockquote>
+<hr>
+<h2>1. 全体の流れ（MVCモデル2 + データベース）</h2>
+<p>このアプリは「<strong>MVCモデル2</strong>」という設計で作られています。難しく聞こえますが、やっていることはシンプルです。</p>
+<pre><code>① ブラウザ
+     ↓ 「予約確認のページが見たい」(URL: /ControlServlet?action=reserveConfirm)
+② ControlServlet（フロントコントローラ）
+     ↓ 「予約確認の処理は ReserveConfirmLogic に任せよう」
+③ ○○Logic（ビジネスロジック = 処理担当）
+     ↓ 「データが必要だから DAO に取りに行ってもらおう」
+④ ○○DAO（データアクセス = データ取得担当）
+     ↓ SQL（SELECT/INSERT/UPDATE/DELETE）
+⑤ MySQL（データベース zaseki1）
+     ↓ 「はい、このデータどうぞ」
+④ ○○DAO
+     ↓
+③ ○○Logic
+     ↓ 「このデータを画面に渡して、この画面を表示してね」
+② ControlServlet
+     ↓ 「JSPに表示をお願いします」
+⑥ ○○.jsp（画面表示担当）
+     ↓
+① ブラウザに画面が表示される
+</code></pre>
+<h3>各層の役割を表でみる</h3>
+<table>
+<thead>
+<tr>
+<th>層</th>
+<th>主なファイル</th>
+<th>役割</th>
+<th>持っていい知識</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① ブラウザ</td>
+<td>（HTML/CSS/JS）</td>
+<td>画面を表示し、リンク・フォームでリクエストを送る</td>
+<td>画面のことだけ</td>
+</tr>
+<tr>
+<td>② コントローラ</td>
+<td><code>control/ControlServlet.java</code></td>
+<td>URLの <code>action</code> を見て、担当のLogicに振り分ける</td>
+<td>「どのactionをどのLogicに渡すか」だけ</td>
+</tr>
+<tr>
+<td>③ ロジック</td>
+<td><code>model/○○Logic.java</code></td>
+<td>画面ごとの処理担当。入力チェック・業務ルール判断</td>
+<td>業務ルール（DBの中身は知らない）</td>
+</tr>
+<tr>
+<td>④ DAO</td>
+<td><code>dao/○○DAO.java</code></td>
+<td>SQLを実行してデータベースとやりとりする</td>
+<td>SQL・テーブル構造のことだけ</td>
+</tr>
+<tr>
+<td>⑤ DB</td>
+<td>MySQL <code>zaseki1</code></td>
+<td>データの保存場所</td>
+<td>-</td>
+</tr>
+<tr>
+<td>⑥ 画面</td>
+<td><code>webapp/WEB-INF/jsp/○○.jsp</code></td>
+<td>表示専用。受け取ったデータを表示するだけ</td>
+<td>表示のことだけ</td>
+</tr>
+</tbody></table>
+<h3>ポイント</h3>
+<ul>
+<li><strong>画面（JSP）に複雑な処理を書かない</strong> → 処理は全部 Logic に書く</li>
+<li><strong>Logicに「SQLの書き方」を書かない</strong> → データの取得・更新は全部 DAO に任せる</li>
+<li><strong>DAOは「DBにどう繋ぐか」だけを <code>dao/DBUtil.java</code> に集約する</strong> → 接続情報（URL・ユーザー名・パスワード）が変わってもDBUtilだけ直せばよい</li>
+<li>それぞれの役割が分かれているので、「画面のデザインを直したい人」「処理のルールを直したい人」「データの中身（テーブル）を直したい人」が、お互いのコードを壊さずに作業できる</li>
+</ul>
+<hr>
+<h2>2. 画面一覧・画面遷移表</h2>
+<p>すべての画面は <code>/ControlServlet?action=○○</code> という1つの入口から始まります。
+「どの <code>action</code> が来たら、どの <code>Logic</code>（または ControlServlet 自身）が処理して、どの画面（JSP）を表示するか」を一覧にしたものが下表です。
+<strong>新しい画面を追加するときは、この表に1行追加するイメージで <code>ControlServlet</code> に <code>case</code> を増やします。</strong></p>
+<table>
+<thead>
+<tr>
+<th>action</th>
+<th>担当</th>
+<th>表示されるJSP</th>
+<th>画面の役割</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>login</code> / <code>doLogin</code></td>
+<td><code>LoginLogic</code></td>
+<td><code>login.jsp</code> / <code>loginNG.jsp</code></td>
+<td>ログイン画面・ログイン処理</td>
+</tr>
+<tr>
+<td><code>logout</code></td>
+<td><code>LogoutLogic</code></td>
+<td><code>logout.jsp</code></td>
+<td>ログアウト</td>
+</tr>
+<tr>
+<td><code>menu</code></td>
+<td><code>ControlServlet#showMenu</code></td>
+<td><code>menu.jsp</code></td>
+<td>一般ユーザーのメニュー（本日の予定・部署の出社状況）</td>
+</tr>
+<tr>
+<td><code>adminMenu</code></td>
+<td><code>ControlServlet#showMenu</code></td>
+<td><code>adminMenu.jsp</code></td>
+<td>管理者メニュー（一般メニュー＋2週間分の予約サマリ）</td>
+</tr>
+<tr>
+<td><code>locationRegist</code> / <code>doLocationRegist</code></td>
+<td><code>LocationRegistLogic</code></td>
+<td><code>locationRegist.jsp</code> ほか</td>
+<td>行先登録（出社・在宅・出張の振り分け）</td>
+</tr>
+<tr>
+<td><code>businessTrip</code> / <code>doBusinessTrip</code></td>
+<td><code>LocationRegistLogic</code></td>
+<td><code>businessTrip.jsp</code></td>
+<td>出張の登録（メモ入力）</td>
+</tr>
+<tr>
+<td><code>remoteWork</code> / <code>doRemoteWork</code></td>
+<td><code>LocationRegistLogic</code></td>
+<td><code>remoteWork.jsp</code></td>
+<td>在宅の登録（メモ入力）</td>
+</tr>
+<tr>
+<td><code>reserve</code> / <code>doReserve</code></td>
+<td><code>ReserveLogic</code></td>
+<td><code>reserve.jsp</code> / <code>reserveOK.jsp</code> / <code>reserveNG.jsp</code></td>
+<td>座席予約（拠点→フロア→エリア→座席の4段階）</td>
+</tr>
+<tr>
+<td><code>reserveConfirm</code> / <code>doCancel</code></td>
+<td><code>ReserveConfirmLogic</code></td>
+<td><code>reserveConfirm.jsp</code></td>
+<td>予約確認・キャンセル</td>
+</tr>
+<tr>
+<td><code>nameSearch</code> / <code>doNameSearch</code></td>
+<td><code>NameSearchLogic</code></td>
+<td><code>nameSearch.jsp</code></td>
+<td>氏名検索（社員の本日の状況を調べる）</td>
+</tr>
+<tr>
+<td><code>departmentSearch</code> / <code>doDepartmentSearch</code></td>
+<td><code>DepartmentSearchLogic</code></td>
+<td><code>departmentSearch.jsp</code></td>
+<td>部門検索（部署単位で本日の状況を調べる）</td>
+</tr>
+<tr>
+<td><code>seatStatus</code> / <code>doSeatStatus</code></td>
+<td><code>ControlServlet#showSeatStatus</code></td>
+<td><code>seatStatus.jsp</code></td>
+<td>座席利用状況（管理者）。拠点・フロア・エリア・日付で絞り込み</td>
+</tr>
+<tr>
+<td><code>adminReserve</code> / <code>doAdminReserve</code></td>
+<td><code>AdminReserveLogic</code></td>
+<td><code>adminReserve.jsp</code></td>
+<td>代理予約（管理者が他の人の予約を登録）</td>
+</tr>
+<tr>
+<td><code>masterUpdate</code> / <code>masterEdit</code> / <code>doMasterAdd</code> / <code>doMasterUpdate</code> / <code>doMasterDelete</code></td>
+<td><code>MasterUpdateLogic</code></td>
+<td><code>masterUpdate.jsp</code></td>
+<td>座席マスタの追加・更新・削除（管理者）</td>
+</tr>
+<tr>
+<td>上記以外（未ログイン時など）</td>
+<td>-</td>
+<td><code>login.jsp</code></td>
+<td>デフォルトはログイン画面</td>
+</tr>
+</tbody></table>
+<h3>ログイン状態によるアクセス制限</h3>
+<p><code>ControlServlet#process</code> の入口で、次のチェックを行っています（<code>login</code>/<code>doLogin</code> 以外の全アクションが対象）。</p>
+<table>
+<thead>
+<tr>
+<th>状態</th>
+<th>結果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>セッションに <code>userId</code> がある（ログイン済み）</td>
+<td>そのまま処理を続ける</td>
+</tr>
+<tr>
+<td>セッションが無い、または <code>userId</code> が無い</td>
+<td><code>action=login</code> にリダイレクト</td>
+</tr>
+</tbody></table>
+<p>管理者専用画面（<code>adminMenu</code>・<code>seatStatus</code>・<code>adminReserve</code>・<code>masterUpdate</code> など）かどうかの判定は、
+各JSP・Logic側でセッションの <code>isAdmin</code> を見て出し分けています（メニューのリンク表示や、ヘッダーの配色切り替えなど）。</p>
+<hr>
+<h2>3. フォルダ構成とファイル一覧</h2>
+<pre><code>src/main/java/
+├── entity/    … データの「入れ物」（クラス）。テーブルの1行に対応するイメージ
+├── dao/       … データを取得・登録・更新・削除する係（JDBCでMySQLに接続）
+├── model/     … 画面ごとの処理担当（ビジネスロジック）
+└── control/   … 全リクエストの窓口（フロントコントローラ）
+
+src/main/webapp/
+├── WEB-INF/jsp/ … 画面表示担当（JSP）
+├── css/         … 見た目（スタイルシート）
+└── images/      … アイコン・フロアマップ画像
+</code></pre>
+<h3>entity（4ファイル）</h3>
+<table>
+<thead>
+<tr>
+<th>ファイル</th>
+<th>対応するテーブル</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Account.java</code></td>
+<td><code>users</code></td>
+<td>ユーザー情報（ID・パスワード・氏名・部署・管理者フラグ）</td>
+</tr>
+<tr>
+<td><code>Location.java</code></td>
+<td><code>departments</code></td>
+<td>部署情報（部署ID・部署名）</td>
+</tr>
+<tr>
+<td><code>Seat.java</code></td>
+<td><code>seats</code></td>
+<td>座席情報（座席ID・拠点・フロア・エリア・座席名）</td>
+</tr>
+<tr>
+<td><code>Reservation.java</code></td>
+<td><code>reservations</code></td>
+<td>予約・行先登録情報</td>
+</tr>
+</tbody></table>
+<h3>dao（5ファイル）</h3>
+<table>
+<thead>
+<tr>
+<th>ファイル</th>
+<th>担当テーブル</th>
+<th>主なメソッド</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>DBUtil.java</code></td>
+<td>-</td>
+<td>MySQLへの接続（<code>getConnection()</code>）を1箇所にまとめる共通クラス</td>
+</tr>
+<tr>
+<td><code>AccountsDAO.java</code></td>
+<td><code>users</code></td>
+<td><code>findById</code> <code>authenticate</code> <code>findAll</code> <code>findByName</code> <code>search</code> <code>findByBId</code></td>
+</tr>
+<tr>
+<td><code>LocationsDAO.java</code></td>
+<td><code>departments</code></td>
+<td><code>findAll</code> <code>getBNameById</code> など部署名の取得</td>
+</tr>
+<tr>
+<td><code>SeatsDAO.java</code></td>
+<td><code>seats</code></td>
+<td><code>getAllSeats</code> <code>findById</code> <code>filterSeats</code> <code>getBases/getFloors/getAreas</code> <code>getOfficeImage</code> など</td>
+</tr>
+<tr>
+<td><code>ReservationsDAO.java</code></td>
+<td><code>reservations</code></td>
+<td><code>findTodayByUserId</code> <code>findByDate</code> <code>getSeatUsageForDate</code> <code>add</code> <code>cancel</code> など</td>
+</tr>
+<tr>
+<td><code>MastersDAO.java</code></td>
+<td><code>seats</code></td>
+<td>マスタ更新画面専用の <code>getAll</code> <code>exists</code> <code>add</code> <code>update</code> <code>delete</code></td>
+</tr>
+</tbody></table>
+<h3>model（9ファイル）</h3>
+<table>
+<thead>
+<tr>
+<th>ファイル</th>
+<th>担当画面</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Logic.java</code></td>
+<td>全Logicクラスが実装するインターフェース（約束事）</td>
+</tr>
+<tr>
+<td><code>LoginLogic.java</code></td>
+<td>ログイン</td>
+</tr>
+<tr>
+<td><code>LogoutLogic.java</code></td>
+<td>ログアウト</td>
+</tr>
+<tr>
+<td><code>LocationRegistLogic.java</code></td>
+<td>行先登録（出社・在宅・出張）</td>
+</tr>
+<tr>
+<td><code>ReserveLogic.java</code></td>
+<td>座席予約</td>
+</tr>
+<tr>
+<td><code>ReserveConfirmLogic.java</code></td>
+<td>予約確認・キャンセル</td>
+</tr>
+<tr>
+<td><code>NameSearchLogic.java</code></td>
+<td>氏名検索</td>
+</tr>
+<tr>
+<td><code>DepartmentSearchLogic.java</code></td>
+<td>部門検索</td>
+</tr>
+<tr>
+<td><code>AdminReserveLogic.java</code></td>
+<td>代理予約</td>
+</tr>
+<tr>
+<td><code>MasterUpdateLogic.java</code></td>
+<td>座席マスタ更新</td>
+</tr>
+</tbody></table>
+<h3>control（1ファイル）</h3>
+<table>
+<thead>
+<tr>
+<th>ファイル</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ControlServlet.java</code></td>
+<td>全リクエストの入口。<code>action</code>の振り分けに加えて、メニュー画面（<code>showMenu</code>）と座席利用状況画面（<code>showSeatStatus</code>）の集計処理も自分で行っている</td>
+</tr>
+</tbody></table>
+<h3>「直したいもの」から逆引き</h3>
+<table>
+<thead>
+<tr>
+<th>やりたいこと</th>
+<th>触るべきフォルダ・ファイル</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ボタンの色や文字サイズなど見た目を変えたい</td>
+<td><code>webapp/css/style.css</code></td>
+</tr>
+<tr>
+<td>画面に表示する項目・文言を変えたい</td>
+<td><code>webapp/WEB-INF/jsp/○○.jsp</code></td>
+</tr>
+<tr>
+<td>アイコン・フロアマップ画像を差し替えたい</td>
+<td><code>webapp/images/○○.png</code>（同じファイル名で上書きすればJSP側の修正は不要）</td>
+</tr>
+<tr>
+<td>ヘッダーのメニュー項目を増やしたい・減らしたい</td>
+<td><code>webapp/WEB-INF/jsp/common/header.jspf</code>（一般）/ <code>headerAdmin.jspf</code>（管理者）</td>
+</tr>
+<tr>
+<td>「予約できる条件」など処理のルールを変えたい</td>
+<td><code>model/○○Logic.java</code></td>
+</tr>
+<tr>
+<td>表示するデータの内容（座席名・人数など）を変えたい</td>
+<td><code>dao/○○DAO.java</code> のSQL、または DBの中身（テーブル）</td>
+</tr>
+<tr>
+<td>ユーザー・座席・部署のデータそのものを増減したい</td>
+<td>MySQL（<code>users</code> / <code>seats</code> / <code>departments</code> テーブル）を編集</td>
+</tr>
+<tr>
+<td>DB接続情報（接続先・パスワード）を変えたい</td>
+<td><code>dao/DBUtil.java</code></td>
+</tr>
+<tr>
+<td>新しい画面・新しい機能を追加したい</td>
+<td><code>entity</code> → <code>dao</code> → <code>model</code> → <code>control</code> → <code>jsp</code> の順に作る</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. データベース構成（MySQL <code>zaseki1</code>）</h2>
+<p>座・Naviは MySQL のデータベース <code>zaseki1</code> を使います。テーブルは4つだけです。
+（定義一式は <code>docs/db/za_navi_schema.sql</code> にあります）</p>
+<table>
+<thead>
+<tr>
+<th>テーブル</th>
+<th>役割</th>
+<th>主なカラム</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>departments</code></td>
+<td>部署マスタ</td>
+<td><code>b_id</code>（部署ID） / <code>b_name</code>（部署名）</td>
+</tr>
+<tr>
+<td><code>users</code></td>
+<td>アカウント</td>
+<td><code>user_id</code>（社員ID・数値） / <code>password</code> / <code>b_id</code>（所属部署） / <code>name</code>（氏名） / <code>admin</code>（1=管理者）</td>
+</tr>
+<tr>
+<td><code>seats</code></td>
+<td>座席マスタ</td>
+<td><code>seat_id</code> / <code>base_name</code>（拠点） / <code>f_name</code>（フロア） / <code>area_name</code>（エリア） / <code>seat_name</code>（座席名）</td>
+</tr>
+<tr>
+<td><code>reservations</code></td>
+<td>予約・行先登録</td>
+<td><code>reserve_id</code> / <code>user_id</code>（本人） / <code>register_id</code>（登録した人） / <code>reserve_date</code> / <code>place</code>（行先=出社/在宅/出張） / <code>seat_id</code>（座席なしは0） / <code>memo</code> / <code>cancel_flag</code>（1=取消済み）</td>
+</tr>
+</tbody></table>
+<h3>テーブルの関係</h3>
+<pre><code>departments (部署)
+   ↑ b_id
+users (ユーザー) ──┐
+   ↑ user_id      │ register_id（代理登録した管理者のID）
+reservations (予約)┘
+   │
+   │ seat_id（0なら座席なし）
+   ↓
+seats (座席)
+</code></pre>
+<h3>覚えておきたいポイント</h3>
+<ul>
+<li><code>user_id</code> はDB上は <strong>数値（INT）</strong> だが、画面・Java側では従来どおり <strong>文字列（String）</strong> として扱う。
+<code>AccountsDAO</code> の境界（JDBCでデータを取り出す/渡すところ）だけで <code>Integer.valueOf(...)</code> ⇔ <code>String.valueOf(...)</code> の変換をしている。</li>
+<li><code>reservations.seat_id = 0</code> は「座席なし」（在宅・出張、または座席未選択の出社）を意味する。<code>seats</code> テーブルへの外部キー制約は無い（0が存在しないため）。</li>
+<li><code>reservations.cancel_flag = 1</code> は「キャンセル済み」。行は削除せず、フラグだけ立てる（履歴として残す）。</li>
+<li>「同じ日・同じ座席に2人が予約できない」「1人が同じ日に2件の有効な予約を持てない」は、<code>seat_active_key</code> / <code>user_active_key</code> という生成列＋UNIQUE制約でDB側でも防いでいる（詳細は <code>za_navi_schema.sql</code> のコメント参照）。</li>
+</ul>
+<hr>
+<h2>5. 各レイヤーの詳しい説明</h2>
+<h3>5-1. entity（エンティティ）= データの入れ物</h3>
+<p><code>entity/Account.java</code>、<code>entity/Reservation.java</code>、<code>entity/Seat.java</code>、<code>entity/Location.java</code> の4つがあります。</p>
+<pre><code class="language-java">public class Account {
+    private String userId;   // ユーザーID（DB上はINTだが、画面側ではString）
+    private String password; // パスワード
+    private String name;     // 氏名
+    private String bId;      // 部門ID
+    private int admin;       // 管理者フラグ（1=管理者, 0=一般）
+    // ... getter/setter ...
+}
+</code></pre>
+<p>これは「データベースの1行を表すクラス」です。例えば <code>users</code> テーブルの1行（1人のユーザー情報）を、Javaのプログラムの中で扱いやすくするための「箱」だと考えてください。</p>
+<p><strong>ここを直すとき</strong>: 新しい項目（例: 電話番号）を増やしたいときは、①DBのテーブルにカラムを追加 → ②entityにフィールドを追加 → ③DAOのSQL（SELECT/INSERTなど）に追加 → ④使う場所（Logic・JSP）でも追加、という流れになります。</p>
+<h3>5-2. dao（データアクセスオブジェクト）= データの取得・更新係</h3>
+<p><code>dao/AccountsDAO.java</code> を例に見てみましょう。</p>
+<pre><code class="language-java">public class AccountsDAO {
+
+    private Account map(ResultSet rs) throws SQLException {
+        return new Account(
+                String.valueOf(rs.getInt(&quot;user_id&quot;)),
+                rs.getString(&quot;password&quot;),
+                rs.getString(&quot;name&quot;),
+                rs.getString(&quot;b_id&quot;),
+                rs.getInt(&quot;admin&quot;)
+        );
+    }
+
+    public Account findById(String userId) {
+        Integer id = parseUserId(userId);
+        if (id == null) return null;
+
+        String sql = &quot;SELECT user_id, password, b_id, name, admin FROM users WHERE user_id = ?&quot;;
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return map(rs);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(&quot;アカウントの取得に失敗しました&quot;, e);
+        }
+        return null;
+    }
+}
+</code></pre>
+<p>ほぼすべてのDAOメソッドが、この形（<strong>JDBCの基本パターン</strong>）です。</p>
+<table>
+<thead>
+<tr>
+<th>手順</th>
+<th>コード</th>
+<th>やっていること</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 接続を取得</td>
+<td><code>Connection conn = DBUtil.getConnection()</code></td>
+<td>MySQLにつなぐ</td>
+</tr>
+<tr>
+<td>② SQLを準備</td>
+<td><code>PreparedStatement ps = conn.prepareStatement(sql)</code></td>
+<td><code>?</code> のプレースホルダ付きSQLを用意する（SQLインジェクション対策にもなる）</td>
+</tr>
+<tr>
+<td>③ 値をセット</td>
+<td><code>ps.setInt(1, id)</code> / <code>ps.setString(2, ...)</code></td>
+<td><code>?</code> に実際の値を入れる</td>
+</tr>
+<tr>
+<td>④ 実行</td>
+<td><code>ps.executeQuery()</code>（SELECT） / <code>ps.executeUpdate()</code>（INSERT/UPDATE/DELETE）</td>
+<td>SQLを実行する</td>
+</tr>
+<tr>
+<td>⑤ 結果を変換</td>
+<td><code>map(rs)</code></td>
+<td><code>ResultSet</code>（DBから返ってきた表）を <code>Account</code> などのentityに変換する</td>
+</tr>
+<tr>
+<td>⑥ 後始末</td>
+<td><code>try (...) { }</code></td>
+<td><code>try-with-resources</code> で <code>Connection</code>/<code>PreparedStatement</code>/<code>ResultSet</code> を自動的にクローズする</td>
+</tr>
+<tr>
+<td>⑦ 例外処理</td>
+<td><code>catch (SQLException e) { throw new RuntimeException(...) }</code></td>
+<td>DBエラーをそのまま投げ直し、<code>ControlServlet</code>側でまとめてエラー画面に出す</td>
+</tr>
+</tbody></table>
+<ul>
+<li>旧バージョンでは <code>Arrays.asList(...)</code> という<strong>Java内のモックデータ</strong>を使っていましたが、現在は全DAOがこの形でMySQLに直接アクセスします。</li>
+<li>「データを増やしたい・変えたい」場合は、Javaコードを直すのではなく <strong>MySQLのテーブルの中身を直す</strong>のが基本になりました（詳細は後述のQ&amp;A参照）。</li>
+</ul>
+<p><strong>ここを直すとき</strong>: 表示するデータの取り方・絞り込み条件を変えたいときは、このSQL文（<code>String sql = &quot;...&quot;</code> の部分）を編集します。</p>
+<h3>5-3. model（ロジック）= 画面ごとの処理担当</h3>
+<p><code>model/Logic.java</code> というインターフェース（約束事）を、各画面の処理クラスが実装しています。</p>
+<pre><code class="language-java">public interface Logic {
+    String execute(HttpServletRequest req, HttpServletResponse res) throws Exception;
+}
+</code></pre>
+<p>「<code>execute</code> という名前のメソッドを必ず作ってね、戻り値は次に表示するJSPのパス（文字列）にしてね」という約束です。</p>
+<p>例えば <code>LoginLogic.java</code>:</p>
+<pre><code class="language-java">public class LoginLogic implements Logic {
+    @Override
+    public String execute(HttpServletRequest req, HttpServletResponse res) {
+        String userId = req.getParameter(&quot;userId&quot;);
+        String password = req.getParameter(&quot;password&quot;);
+
+        Account account = new AccountsDAO().authenticate(userId, password);
+
+        if (account != null) {
+            // ログイン成功 → セッションに情報を保存して、メニュー画面へ
+            HttpSession session = req.getSession();
+            session.setAttribute(&quot;userId&quot;, account.getUserId());
+            session.setAttribute(&quot;userName&quot;, account.getName());
+            session.setAttribute(&quot;isAdmin&quot;, account.getAdmin() == 1);
+            return account.getAdmin() == 1
+                    ? &quot;/WEB-INF/jsp/adminMenu.jsp&quot;
+                    : &quot;/WEB-INF/jsp/menu.jsp&quot;;
+        } else {
+            // ログイン失敗 → エラーメッセージを画面にセットして、ログイン画面へ
+            req.setAttribute(&quot;errorMsg&quot;, &quot;ユーザーIDまたはパスワードが正しくありません。&quot;);
+            return &quot;/WEB-INF/jsp/loginNG.jsp&quot;;
+        }
+    }
+}
+</code></pre>
+<p>やっていることは3ステップです。</p>
+<ol>
+<li>画面から送られてきた値を受け取る（<code>req.getParameter(...)</code>）</li>
+<li>DAOからデータを取得して、判定・加工する（業務のルール）</li>
+<li>画面に渡すデータをセットして（<code>req.setAttribute(...)</code>）、次に表示するJSPのパスを返す</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>「ログインできません」と出たときの考え方</strong>: <code>AccountsDAO.authenticate()</code> が <code>null</code> を返すのは、
+「SQLは正常に実行できたが、その <code>user_id</code>+<code>password</code> に一致する行が無かった」という意味です。
+DB接続自体に失敗した場合は <code>SQLException</code> → <code>RuntimeException</code> となり、<code>ControlServlet</code>側で
+「システムエラー」として別扱いになります。<strong>「ID/パスワードが違います」というメッセージが出ている時点で、
+DB接続自体は成功している</strong>、という切り分けができます。</p>
+</blockquote>
+<p><strong>ここを直すとき</strong>:「パスワードが3回間違ったらロックする」「土日は予約できないようにする」など、<strong>業務のルール・条件</strong>を変えたいときはここを編集します。</p>
+<h3>5-4. control（コントローラ）= 全リクエストの窓口</h3>
+<p><code>control/ControlServlet.java</code> がアプリの「玄関」です。すべてのリクエストは
+<code>/ControlServlet?action=○○</code> という形でここに届きます。</p>
+<pre><code class="language-java">switch (action) {
+    case &quot;login&quot;:
+    case &quot;doLogin&quot;:
+        return new LoginLogic().execute(req, res);
+
+    case &quot;reserve&quot;:
+    case &quot;doReserve&quot;:
+        return new ReserveLogic().execute(req, res);
+
+    case &quot;menu&quot;:
+        return showMenu(req, false);
+
+    case &quot;adminMenu&quot;:
+        return showMenu(req, true);
+    // ...
+}
+</code></pre>
+<p>「<code>action=login</code> というリクエストが来たら <code>LoginLogic</code> に処理を任せる」という振り分け表になっています（全パターンは「2. 画面一覧・画面遷移表」を参照）。</p>
+<p><code>menu</code> / <code>adminMenu</code> / <code>seatStatus</code> / <code>doSeatStatus</code> の4つだけは、専用の <code>Logic</code> クラスを作らず
+<code>ControlServlet</code> 自身のメソッド（<code>showMenu</code> / <code>showSeatStatus</code>）で処理しています
+（メニュー画面・座席利用状況画面は複数のDAOの結果を組み合わせる集計処理が多いため）。</p>
+<p><strong>ここを直すとき</strong>: 新しい画面・機能を追加したときは、ここに <code>case</code> を1行追加して、対応する Logic を呼び出すようにします。</p>
+<h3>5-5. jsp（画面）= 表示担当</h3>
+<p><code>webapp/WEB-INF/jsp/menu.jsp</code> などが画面の見た目を作っています。</p>
+<pre><code class="language-jsp">&lt;%@ page contentType=&quot;text/html; charset=UTF-8&quot; pageEncoding=&quot;UTF-8&quot; %&gt;
+...
+&lt;a href=&quot;&lt;%= request.getContextPath() %&gt;/ControlServlet?action=reserve&quot; class=&quot;menu-btn&quot;&gt;
+  座席予約
+&lt;/a&gt;
+</code></pre>
+<ul>
+<li><code>&lt;%@ page %&gt;</code> は「このページの設定」を書く場所（文字コードなど）</li>
+<li><code>&lt;a href=&quot;...&quot;&gt;</code> のリンクが押されると、また <code>ControlServlet</code> にリクエストが飛ぶ</li>
+<li><code>&lt;%= ... %&gt;</code> の部分には、Logicが用意したデータ（<code>req.setAttribute(...)</code>したもの）を表示できます</li>
+</ul>
+<p><strong>ここを直すとき</strong>: 文言・レイアウト・表示する項目を変えたいときはここを編集します。ロジック（計算や判定）をJSPに書かないのがルールです。</p>
+<hr>
+<h2>6. 「画面が動くまで」の具体例（ログイン画面で確認）</h2>
+<ol>
+<li>ブラウザで <code>http://localhost:8080/za-navi/ControlServlet?action=login</code> を開く</li>
+<li><code>ControlServlet</code> が <code>action=login</code> を受け取り、<code>LoginLogic</code> を呼ぶ</li>
+<li><code>LoginLogic</code> は何もせず（GETなので）<code>/WEB-INF/jsp/login.jsp</code> を返す</li>
+<li><code>login.jsp</code> が表示される</li>
+<li>ユーザーがID・パスワードを入力して送信 → 今度は <code>action=doLogin</code> というリクエストが飛ぶ</li>
+<li><code>ControlServlet</code> が <code>LoginLogic</code> を呼ぶ（同じLogicがログイン処理も担当）</li>
+<li><code>LoginLogic</code> が <code>AccountsDAO.authenticate(userId, password)</code> を呼び、内部で
+<code>SELECT ... FROM users WHERE user_id = ? AND password = ?</code> をMySQLに投げる</li>
+<li>一致する行があれば <code>Account</code> を返す。成功なら <code>menu.jsp</code>（または <code>adminMenu.jsp</code>）、
+失敗（該当行なし）なら <code>loginNG.jsp</code> を返す</li>
+<li><code>ControlServlet</code> がそのJSPに画面表示を依頼する</li>
+</ol>
+<p>この「URLのaction → Logic → DAO（→ MySQL） → 結果に応じてJSPを選ぶ」という流れは、<strong>すべての画面で共通</strong>です。1つの画面の流れが理解できれば、他の画面も同じ読み方で理解できます。</p>
+<hr>
+<h2>7. 機能解説：実際のコードを読んでみる</h2>
+<p>ここでは、実際にこのアプリに入っている「ちょっと工夫した処理」を取り上げて、
+<strong>コードがどう書いてあるか</strong>・<strong>どこを直せば動きが変わるか</strong>を具体的に見ていきます。</p>
+<h3>7-1. ヘッダーのプルダウンメニュー（JavaScriptを使わない実装）</h3>
+<p><code>webapp/WEB-INF/jsp/common/header.jspf</code> を開くと、メニューが次のように書かれています。</p>
+<pre><code class="language-jsp">&lt;details class=&quot;menu-dropdown&quot;&gt;
+  &lt;summary&gt;
+    &lt;img class=&quot;ico&quot; src=&quot;...&quot;&gt;　&lt;%= session.getAttribute(&quot;userName&quot;) %&gt; さん　&lt;span class=&quot;caret&quot;&gt;▾&lt;/span&gt;
+  &lt;/summary&gt;
+  &lt;div class=&quot;dropdown-panel&quot;&gt;
+    &lt;a href=&quot;...?action=menu&quot;&gt;メニュー&lt;/a&gt;
+    &lt;a href=&quot;...?action=logout&quot;&gt;ログアウト&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/details&gt;
+</code></pre>
+<p><code>&lt;details&gt;</code> と <code>&lt;summary&gt;</code> はHTML標準のタグで、<strong>JavaScriptを書かなくてもクリックで開閉するメニュー</strong>が作れます。
+<code>&lt;summary&gt;</code> がクリックする部分（見出し）、その中の <code>&lt;div class=&quot;dropdown-panel&quot;&gt;</code> が開いたときに表示される中身です。
+見た目は <code>webapp/css/style.css</code> の <code>.menu-dropdown</code> <code>.dropdown-panel</code> で調整しています。</p>
+<p><strong>ここを直すとき</strong>: メニューの項目を増やしたい・並び替えたいときは、<code>&lt;div class=&quot;dropdown-panel&quot;&gt;</code> の中の <code>&lt;a&gt;</code> タグを編集します（一般ユーザー用は <code>header.jspf</code>、管理者用は <code>headerAdmin.jspf</code>）。</p>
+<h3>7-2. 行先登録で「出社」を選んだら座席予約画面へ進む</h3>
+<p><code>model/LocationRegistLogic.java</code> の <code>doRegist</code> メソッドを見ると、行き先によって処理を分けています。</p>
+<pre><code class="language-java">private String doRegist(HttpServletRequest req, HttpServletResponse res) throws Exception {
+    String gyosaki = req.getParameter(&quot;gyosaki&quot;); // 出社 / 在宅 / 出張
+    if (&quot;出張&quot;.equals(gyosaki)) {
+        return &quot;/WEB-INF/jsp/businessTrip.jsp&quot;;
+    }
+    if (&quot;在宅&quot;.equals(gyosaki)) {
+        return &quot;/WEB-INF/jsp/remoteWork.jsp&quot;;
+    }
+    // 出社：ここでは登録せず座席予約画面（ReserveLogic）へリダイレクトし、
+    // 座席が決まった時点で「出社＋座席」をまとめて1件登録する
+    // （そうしないと「出社（座席なし）」と「出社（座席あり）」の2件ができてしまうため）
+    res.sendRedirect(req.getContextPath() + &quot;/ControlServlet?action=reserve&quot;);
+    return null;
+}
+</code></pre>
+<p>ポイントは <code>res.sendRedirect(...)</code> と <code>return null</code> の組み合わせです。
+<code>Logic</code> インターフェース（<code>model/Logic.java</code>）の説明にある通り、<code>execute</code>（や内部メソッド）が <code>null</code> を返すのは「もう自分でリダイレクトしたので、<code>ControlServlet</code> は何もしなくてよい」という合図です。
+<code>return &quot;/WEB-INF/jsp/xxx.jsp&quot;</code> で**画面の切り替え（forward）<strong>をするのか、<code>res.sendRedirect(...)</code> ＋ <code>return null</code> で</strong>別のactionへの飛び直し（redirect）**をするのか、の使い分けがここで学べます。</p>
+<blockquote>
+<p><strong>つまずきポイント</strong>: 以前の版では「出社」を選んだ時点でこの <code>doRegist</code> 内でも1件登録していたため、
+座席予約画面で座席を選んだときの登録と合わせて「出社（座席なし）」「出社（座席あり）」の<strong>2件が重複登録</strong>されてしまうバグがありました。
+「出社」のときは登録せずリダイレクトだけする＝<strong>登録は必ず1箇所（ReserveLogic）に集約する</strong>、という設計が直した後の形です。
+（現在はDB側でも <code>reservations</code> テーブルの <code>user_active_key</code> のUNIQUE制約により、1人が同じ日に有効な予約を複数件持つことは構造上できないようになっています。）</p>
+</blockquote>
+<p><strong>「在宅」「出張」も専用画面でメモを書いてから登録</strong>: どちらも一旦 <code>remoteWork.jsp</code> / <code>businessTrip.jsp</code> に forward し、利用者が任意でメモを入力してから <code>doRemoteWork</code> / <code>doBusinessTrip</code> で登録する流れになっています。
+登録後は <code>saveAndGoMenu</code> が <code>ControlServlet?action=menu</code>（または管理者なら <code>adminMenu</code>）へ <code>redirect</code> し、セッションの <code>isAdmin</code> を見てメニューを振り分けます（完了メッセージはリダイレクトをまたいで表示する必要があるため、リクエスト属性ではなくセッションの一時的な「フラッシュメッセージ」として持たせています）。</p>
+<blockquote>
+<p><strong>つまずきポイント</strong>: <code>LocationRegistLogic</code> 側に新しい action（<code>remoteWork</code> / <code>doRemoteWork</code>）の処理を追加しても、入口の <code>ControlServlet</code> の <code>switch</code> に対応する <code>case</code> を足し忘れると、<code>default</code> 分岐でログイン画面に飛ばされてしまいます。<strong>新しい action を追加するときは、必ず <code>ControlServlet</code> と各 <code>Logic</code> クラスの両方に手を入れる</strong>、という基本を再確認できる典型例です。</p>
+</blockquote>
+<p><strong>ここを直すとき</strong>: 行き先ごとの遷移ルールを変えたいときはこの <code>if</code> 分岐を、登録後の戻り先や完了メッセージを変えたいときは <code>saveAndGoMenu</code> を編集します。</p>
+<h3>7-3. 検索結果に座席情報を追加する（DAOを組み合わせる例）</h3>
+<p><code>model/NameSearchLogic.java</code>・<code>DepartmentSearchLogic.java</code> では、検索結果の各ユーザーについて
+「本日の予約」から「予約している座席」まで芋づる式に取得しています。</p>
+<pre><code class="language-java">List&lt;Reservation&gt; todayRes = resDAO.findTodayByUserId(a.getUserId());
+String todayStatus = &quot;未登録&quot;;
+Seat seat = null;
+if (!todayRes.isEmpty()) {
+    Reservation r = todayRes.get(0);
+    todayStatus = r.getGyosaki();
+    if (r.getSeatId() &gt; 0) {
+        seat = seatDAO.findById(r.getSeatId());   // 予約 → 座席IDから座席情報を取得
+    }
+}
+row.put(&quot;todayStatus&quot;, todayStatus);
+row.put(&quot;seat&quot;, seat);   // JSPへ渡す
+</code></pre>
+<p><code>ReservationsDAO</code> で「その人が今日どこに行く予定か」を調べ、座席を予約していれば <code>seatId</code> を使って <code>SeatsDAO</code> から座席の詳細（拠点・フロア・エリア・座席番号）を取得する、という<strong>2段階の問い合わせ</strong>になっています。
+JSP側（<code>nameSearch.jsp</code>・<code>departmentSearch.jsp</code>）では、受け取った <code>seat</code> が <code>null</code> でなければ <code>seat.getBaseName()</code> などを表示するだけです。</p>
+<p><strong>ここを直すとき</strong>: 検索結果に表示する項目をさらに増やしたい場合は、同じ要領で「Logicで必要なデータをDAOから集めて<code>row</code>に詰める」→「JSPで<code>row.get(...)</code>して表示する」という形を真似すれば追加できます。</p>
+<h3>7-4. 拠点ごとのフロアマップ画像を切り替える仕組み（OFFICE_IMAGES）</h3>
+<p>座席利用状況・代理予約・マスタ更新・座席予約の各画面では、「拠点（オフィス）」や「フロア」「エリア」を選ぶとそれに対応するマップ画像が表示されます。
+この対応関係は <code>dao/SeatsDAO.java</code> の <code>OFFICE_IMAGES</code> という <code>Map</code> にまとめられています。</p>
+<pre><code class="language-java">static final Map&lt;String, String&gt; OFFICE_IMAGES = new LinkedHashMap&lt;&gt;();
+static {
+    OFFICE_IMAGES.put(&quot;三田_1F&quot;, &quot;office_mita_1F.png&quot;);
+    OFFICE_IMAGES.put(&quot;芝浦_1F&quot;, &quot;office_shibaura_1F.png&quot;);
+    // 拠点単位のフォールバック画像
+    OFFICE_IMAGES.put(&quot;三田&quot;, &quot;office_mita.png&quot;);
+    // エリア専用画像
+    OFFICE_IMAGES.put(&quot;三田_1F_A&quot;, &quot;office_mita_1F_A.png&quot;);
+    // ...
+}
+
+public String getOfficeImage(String baseName, String floorName) {
+    if (floorName != null &amp;&amp; !floorName.isEmpty()) {
+        String perFloor = OFFICE_IMAGES.get(baseName + &quot;_&quot; + floorName);
+        if (perFloor != null) return perFloor;
+    }
+    return OFFICE_IMAGES.get(baseName);
+}
+</code></pre>
+<p>キーの付け方には次のルールがあります。</p>
+<table>
+<thead>
+<tr>
+<th>キーの形</th>
+<th>例</th>
+<th>使われる場面</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>拠点名</code></td>
+<td><code>&quot;三田&quot;</code></td>
+<td>フロア未選択時のフォールバック画像</td>
+</tr>
+<tr>
+<td><code>拠点名_フロア名</code></td>
+<td><code>&quot;三田_1F&quot;</code></td>
+<td>フロアまで選んだときに優先表示される画像</td>
+</tr>
+<tr>
+<td><code>拠点名_フロア名_エリア名</code></td>
+<td><code>&quot;三田_1F_A&quot;</code></td>
+<td>エリアまで選んだときの専用画像（座席予約画面など）</td>
+</tr>
+</tbody></table>
+<p><code>getExpectedFloorImage</code> / <code>getExpectedAreaImage</code> は、<code>OFFICE_IMAGES</code> に未登録の拠点・フロア・エリアでも
+「こういうファイル名のはず」という<strong>期待されるファイル名</strong>を自動生成して返します。JSP側は常にこのファイル名で
+<code>&lt;img&gt;</code> タグを出し、画像ファイルが実際に無い場合は <code>onerror</code> でプレースホルダー表示に切り替えます。
+これにより、<strong>新しい拠点・フロアを追加した直後でも画面が壊れず</strong>、後から画像ファイルを置けば自動的に表示されるようになっています。</p>
+<p><strong>新しいオフィスを増やす手順</strong>（<code>SeatsDAO.java</code> の冒頭コメントにも同じ内容を記載しています）:</p>
+<ol>
+<li><code>seats</code> テーブルに新オフィス分の座席データを追加する（マスタ更新画面の「②座席を追加する」から「＋ 新しいオフィスを追加する」を選んでも可）</li>
+<li>フロアマップ画像（PNGなど）を用意し、<code>webapp/images/</code> と Eclipse側 <code>WebContent/images/</code> の<strong>両方</strong>に置く</li>
+<li>必要であれば <code>OFFICE_IMAGES</code> に <code>&quot;拠点名_フロア名&quot;</code> などのキーで対応を追記する（追記しなくても、上記の自動生成ファイル名で画像を置けば表示される）</li>
+</ol>
+<p><strong>ここを直すとき</strong>: オフィスを追加・削除したいときはこのセクションの手順どおりに <code>seats</code> テーブルと <code>SeatsDAO.java</code> を編集します。画像を変えたいだけなら、同じファイル名で画像を上書きするだけでOK（コードの変更は不要）。</p>
+<h3>7-5. 「拠点 → フロア → エリア」を順番に絞り込む仕組み（カスケード選択）</h3>
+<p>座席利用状況画面・代理予約画面・座席予約画面では、「①拠点を選ぶ → ②その拠点にあるフロアだけが選べるようになる → ③そのフロアにあるエリアだけが選べるようになる」という、
+前の選択に応じて次の選択肢が変わる<strong>カスケード選択</strong>を採用しています。
+「すべての拠点」のような曖昧な状態を作らず、常に「○○オフィスの○○エリア」のように場所が一意に決まるようにするためです。</p>
+<p>仕組みは難しくありません。<code>ControlServlet#showSeatStatus</code> などで、選ばれている値に応じて段階的にリストを用意するだけです。</p>
+<pre><code class="language-java">boolean baseChosen  = filterBase  != null &amp;&amp; !filterBase.isEmpty();
+boolean floorChosen = baseChosen &amp;&amp; filterFloor != null &amp;&amp; !filterFloor.isEmpty();
+boolean areaChosen  = floorChosen &amp;&amp; filterArea != null &amp;&amp; !filterArea.isEmpty();
+
+if (baseChosen)  req.setAttribute(&quot;floors&quot;, seatsDAO.getFloors(filterBase));
+if (floorChosen) req.setAttribute(&quot;areas&quot;,  seatsDAO.getAreas(filterBase, filterFloor));
+
+List&lt;Seat&gt; filteredSeats = areaChosen
+        ? seatsDAO.filterSeats(filterBase, filterFloor, filterArea)
+        : new ArrayList&lt;&gt;();
+</code></pre>
+<p>「拠点が選ばれていなければフロアの選択肢は用意しない」「フロアが選ばれていなければエリアの選択肢は用意しない」という順番がポイントです。
+<code>getFloors</code> / <code>getAreas</code> は、内部で <code>SELECT DISTINCT f_name FROM seats WHERE base_name = ?</code> のようなSQLを実行し、<strong>そのときDBに実際に存在する値だけ</strong>を選択肢として返します。
+JSP側は <code>&lt;select onchange=&quot;this.form.submit()&quot;&gt;</code> でプルダウンを変更するたびにフォームを自動送信し、<code>floors</code>/<code>areas</code> が <code>null</code> の間は <code>&lt;select disabled&gt;</code> にして選べないようにしています。</p>
+<pre><code class="language-jsp">&lt;select name=&quot;filterFloor&quot; onchange=&quot;this.form.submit()&quot; &lt;%= (floors == null) ? &quot;disabled&quot; : &quot;&quot; %&gt;&gt;
+  ...
+&lt;/select&gt;
+</code></pre>
+<p><strong>ここを直すとき</strong>: 同じ「親を選ぶまで子は選べない」絞り込みを別の画面でも作りたいときは、Logic（またはControlServlet）側で「選ばれているか」のbooleanを段階的に作り、それに応じてリストをセットする → JSP側は <code>disabled</code> とプルダウンの自動送信、という形を真似します。</p>
+<h3>7-6. 管理者ログイン中だけ画面の色を変える仕組み（CSS変数の上書き）</h3>
+<p>管理者でログインしている間は、ヘッダーやボタンの基調色がティール系からインディゴ系に変わります。
+<code>webapp/css/style.css</code> の <code>:root</code> で色は <strong>CSS変数</strong>として定義されており（<code>--teal</code> <code>--teal-light</code> <code>--teal-dark</code>）、ボタンやヘッダーなどあらゆる場所がこの変数を参照しています。</p>
+<pre><code class="language-css">:root {
+    --teal:       #00897B;
+    --teal-light: #4DB6AC;
+    --teal-dark:  #00695C;
+}
+.header { background: var(--teal); }
+.btn-primary { background: var(--teal); color: #fff; }
+</code></pre>
+<p>管理者用ヘッダー（<code>headerAdmin.jspf</code>）と一般用ヘッダー（<code>header.jspf</code>）の先頭で、ログイン中のユーザーが管理者なら、この変数を上書きする <code>&lt;style&gt;</code> を出力しています。</p>
+<pre><code class="language-jsp">&lt;% if (Boolean.TRUE.equals(session.getAttribute(&quot;isAdmin&quot;))) { %&gt;
+&lt;style&gt;
+  :root { --teal:#3949AB; --teal-light:#7986CB; --teal-dark:#283593; }
+&lt;/style&gt;
+&lt;% } %&gt;
+</code></pre>
+<p>CSSの <code>:root</code> はどこに <code>&lt;style&gt;</code> を書いても文書全体に効くため、ヘッダーの中に書くだけで<strong>ページ全体の色が一括で変わります</strong>。
+個別の <code>.btn</code> や <code>.header</code> を1つずつ書き換える必要がないのが、CSS変数を使う一番のメリットです。</p>
+<p><strong>ここを直すとき</strong>: 配色そのものを変えたいときはこの <code>&lt;style&gt;</code> 内の3つの色コードを変更するだけ。「管理者だけでなく特定の部署だけ色を変えたい」など条件を変えたい場合は、<code>if</code> の条件式を書き換えます。</p>
+<h3>7-7. メニュー画面の集計表示（同部署の出社人数・2週間分の予約状況）</h3>
+<p>メニュー画面の表示は <code>control/ControlServlet.java</code> の <code>showMenu</code> メソッドが担当しています（このアプリでは <code>MenuLogic</code> という専用クラスを作らず、コントローラの中で直接処理しています）。</p>
+<pre><code class="language-java">// 同じ部署の本日の出社人数・座席一覧
+Account me = accDAO.findById(userId);
+List&lt;Account&gt; deptMembers = accDAO.findByBId(me.getBId());
+
+List&lt;Map&lt;String, Object&gt;&gt; deptSeatList = new ArrayList&lt;&gt;();
+long officeCount = 0;
+for (Account a : deptMembers) {
+    List&lt;Reservation&gt; mRes = resDAO.findTodayByUserId(a.getUserId());
+    if (mRes.isEmpty()) continue;
+    Reservation r = mRes.get(0);
+    if (!&quot;出社&quot;.equals(r.getGyosaki())) continue;
+    officeCount++;
+
+    Seat seat = r.getSeatId() &gt; 0 ? seatDAO.findById(r.getSeatId()) : null;
+    Map&lt;String, Object&gt; row = new HashMap&lt;&gt;();
+    row.put(&quot;name&quot;, a.getName());
+    row.put(&quot;seat&quot;, seat);
+    deptSeatList.add(row);
+}
+req.setAttribute(&quot;deptOfficeCount&quot;, officeCount);
+req.setAttribute(&quot;deptSeatList&quot;, deptSeatList);
+</code></pre>
+<p>「自分の部署のメンバー一覧を取得 → 一人ひとりの本日の予約を調べる → <code>出社</code> の人だけ人数を数えつつ、氏名と座席をリストに詰める」という流れです。
+<strong>人数だけでなく「誰が・どの座席にいるか」までその場で組み立てている</strong>のがポイントで、JSP側 (<code>menu.jsp</code> / <code>adminMenu.jsp</code>) はこの <code>deptSeatList</code> を <code>for</code> で回して <code>row.get(&quot;name&quot;)</code> ・ <code>row.get(&quot;seat&quot;)</code> を表示するだけになっています。</p>
+<p>2週間分の予約状況（管理者メニューのみ表示）も同じ考え方で、<code>LocalDate.now().plusDays(i)</code> で14日分の日付を作りながら、1日ごとに <code>findByDate</code> で予約を取得し、件数の集計と「氏名＋座席」の明細リスト（<code>people</code>）の両方を組み立てています。</p>
+<pre><code class="language-java">for (int i = 0; i &lt; 14; i++) {
+    String date = LocalDate.now().plusDays(i).toString();
+    List&lt;Reservation&gt; dayRes = resDAO.findByDate(date);
+    long officeNum = dayRes.stream().filter(r -&gt; &quot;出社&quot;.equals(r.getGyosaki())).count();
+    long seatNum   = dayRes.stream().filter(r -&gt; r.getSeatId() &gt; 0).count();
+
+    // 出社・座席が確定している人の「氏名＋座席」明細（折りたたみ表示用）
+    List&lt;Map&lt;String, Object&gt;&gt; people = new ArrayList&lt;&gt;();
+    for (Reservation r : dayRes) {
+        if (!&quot;出社&quot;.equals(r.getGyosaki()) || r.getSeatId() &lt;= 0) continue;
+        Account acc = accDAO.findById(r.getUserId());
+        Seat seat = seatDAO.findById(r.getSeatId());
+        people.add(...氏名と座席を詰めたMap...);
+    }
+    row.put(&quot;people&quot;, people);
+    ...
+}
+</code></pre>
+<p><code>adminMenu.jsp</code> 側では、この <code>people</code> を <code>&lt;details class=&quot;day-summary&quot;&gt;&lt;summary&gt;...&lt;/summary&gt;&lt;div class=&quot;day-detail&quot;&gt;...&lt;/div&gt;&lt;/details&gt;</code> という
+<strong>HTML標準の折りたたみ要素</strong>で包み、「閉じた状態は日付と件数だけのコンパクト表示」「クリックして開くと氏名・座席まで見える詳細表示」を、JavaScriptなしで実現しています（7-1のプルダウンメニューと同じ <code>&lt;details&gt;</code>/<code>&lt;summary&gt;</code> パターン）。</p>
+<p><strong>ここを直すとき</strong>:</p>
+<ul>
+<li>件数の数え方や表示する範囲（2週間→1ヶ月など）を変えたい → <code>showMenu</code> メソッドの集計部分を編集</li>
+<li>表示するレイアウトを変えたい → <code>menu.jsp</code>（一般）/ <code>adminMenu.jsp</code>（管理者）の該当する <code>&lt;div class=&quot;card&quot;&gt;</code> を編集</li>
+<li>一般ユーザーにも2週間分を見せたい → <code>if (isAdmin) { ... }</code> の条件を外し、<code>menu.jsp</code> 側にも同じ表示ブロックを追加する</li>
+</ul>
+<h3>7-8. マスタ更新の重複チェック（DAOで「既に存在するか」を調べる）</h3>
+<p>マスタ更新画面では、座席を追加・更新するときに「拠点・フロア・エリア・座席名」が完全に一致する座席が既にあれば、エラーメッセージを表示して登録を防ぎます。</p>
+<pre><code class="language-java">// MastersDAO.java
+public boolean exists(String baseName, String fName, String areaName, String seatName, int excludeSeatId) {
+    String sql = &quot;SELECT 1 FROM seats WHERE base_name=? AND f_name=? AND area_name=? AND seat_name=? AND seat_id&lt;&gt;?&quot;;
+    try (Connection conn = DBUtil.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, baseName);
+        ps.setString(2, fName);
+        ps.setString(3, areaName);
+        ps.setString(4, seatName);
+        ps.setInt(5, excludeSeatId);
+        try (ResultSet rs = ps.executeQuery()) {
+            return rs.next(); // 1行でも見つかれば true
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException(&quot;座席の重複チェックに失敗しました&quot;, e);
+    }
+}
+</code></pre>
+<p><code>excludeSeatId</code> は「更新中の自分自身は重複チェックの対象から外す」ための仕組みです。</p>
+<table>
+<thead>
+<tr>
+<th>呼び出し元</th>
+<th><code>excludeSeatId</code></th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>doMasterAdd</code>（新規追加）</td>
+<td><code>-1</code></td>
+<td>全座席が対象（自分はまだ存在しないので除外不要）</td>
+</tr>
+<tr>
+<td><code>doMasterUpdate</code>（更新）</td>
+<td>更新対象の <code>seatId</code></td>
+<td>「自分以外」に同じ内容の座席があれば重複エラー</td>
+</tr>
+</tbody></table>
+<p><strong>ここを直すとき</strong>: 「拠点名だけ重複NG」のように重複判定の基準を変えたい場合は、このSQLの <code>WHERE</code> 条件（<code>AND</code> で繋がっている列）を変更します。</p>
+<hr>
+<h2>8. よくある「ここを直したい」Q&amp;A</h2>
+<p><strong>Q. ボタンの表示文言を変えたい</strong>
+→ 該当する <code>.jsp</code> ファイルを開いて、文字列を直接書き換えればOK。</p>
+<p><strong>Q. ログインできるユーザーを増やしたい</strong>
+→ MySQLの <code>users</code> テーブルに行を1件追加します。例:</p>
+<pre><code class="language-sql">INSERT INTO users (user_id, password, b_id, name, admin)
+VALUES (1201, &#39;pass1201&#39;, &#39;D001&#39;, &#39;新入社員&#39;, 0);
+</code></pre>
+<p>（<code>user_id</code> は既存の値と重複しないようにすること。Javaコードの修正は不要です。）</p>
+<p><strong>Q. 座席を増やしたい・座席のレイアウトを変えたい</strong>
+→ 画面から行う場合は「マスタ更新」画面（管理者）の「②座席を追加する」フォームを使うのが簡単です（重複チェック付き）。
+直接SQLで行う場合は <code>seats</code> テーブルに <code>INSERT</code> します。</p>
+<p><strong>Q. 部署を増やしたい</strong>
+→ <code>departments</code> テーブルに <code>INSERT</code> してから、その <code>b_id</code> を持つユーザーを <code>users</code> に追加します。</p>
+<p><strong>Q. 「土日は予約できない」などのルールを追加したい</strong>
+→ <code>model/ReserveLogic.java</code> の処理の中に、日付を判定する <code>if</code> 文を追加。</p>
+<p><strong>Q. 新しい画面を追加したい</strong>
+→ 次の順番で作成します。</p>
+<ol>
+<li>必要なら <code>entity</code> にデータの入れ物を追加</li>
+<li><code>dao</code> にデータ取得用のメソッドを追加（SQLを書く）</li>
+<li><code>model</code> に処理クラス（<code>Logic</code>を実装）を作成</li>
+<li><code>control/ControlServlet.java</code> に <code>case</code> を追加（「2. 画面一覧・画面遷移表」に1行追加するイメージ）</li>
+<li><code>webapp/WEB-INF/jsp</code> に画面（JSP）を作成</li>
+</ol>
+<p><strong>Q. DBに繋がらない・エラーになる</strong>
+→ まず <code>dao/DBUtil.java</code> の接続情報（URL・ユーザー名・パスワード）が自分のMySQL環境と合っているか確認してください。
+「ユーザーIDまたはパスワードが正しくありません」は接続自体は成功しているケースなので、別の原因（DBの中身を確認）です（「5-3. model」のコラム参照）。</p>
+<hr>
+<p>関連ドキュメント:</p>
+<ul>
+<li><a href="02_DB%E6%8E%A5%E7%B6%9A%E3%82%AC%E3%82%A4%E3%83%89.md">02_DB接続ガイド.md</a> — モックデータから実際のMySQLに繋ぎ変えた手順・経緯</li>
+<li><a href="03_%E7%A0%94%E4%BF%AE%E3%83%8F%E3%83%B3%E3%82%BA%E3%82%AA%E3%83%B3%E6%89%8B%E9%A0%86%E6%9B%B8.md">03_研修ハンズオン手順書.md</a> — 研修当日の手順まとめ</li>
+<li><a href="06_%E8%A9%A6%E9%A8%93%E8%A6%81%E9%A0%98%E6%9B%B8.pdf">06_試験要領書.pdf</a> — テスト項目（T01〜T12）一覧</li>
+<li><a href="07_%E4%B8%8D%E5%85%B7%E5%90%88%E4%BF%AE%E6%AD%A3%E5%B1%A5%E6%AD%B4%E6%9B%B8.pdf">07_不具合修正履歴書.pdf</a> — 開発中に見つかった不具合と対応の履歴</li>
+<li><code>docs/db/za_navi_schema.sql</code> — データベースのテーブル定義・初期データ</li>
+</ul>
+
+</body>
+</html>
